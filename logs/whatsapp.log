@@ -1,0 +1,668 @@
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:27:29"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:27:29"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:27:29"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:27:29"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:27:29"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:27:29"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:27:29"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:27:29"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:27:29"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:27:31"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:28:31"}
+{"error":"Connection Terminated","level":"warn","message":"⚠️ Koneksi WhatsApp terputus","reason":428,"service":"whatsapp-gateway","shouldReconnect":true,"timestamp":"2026-01-19 10:33:06"}
+{"level":"info","message":"🔄 Mencoba reconnect...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:33:06"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:33:09"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:33:10"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:34:10"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:34:30"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:34:50"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:35:10"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:35:31"}
+{"error":"QR refs attempts ended","level":"warn","message":"⚠️ Koneksi WhatsApp terputus","reason":408,"service":"whatsapp-gateway","shouldReconnect":true,"timestamp":"2026-01-19 10:35:51"}
+{"level":"info","message":"🔄 Mencoba reconnect...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:35:51"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:35:54"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:35:55"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:36:55"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:37:15"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:37:35"}
+{"level":"info","message":"[1f5601bb] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:37:51"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:37:55"}
+{"level":"info","message":"[7971829d] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:06"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:15"}
+{"level":"info","message":"[e96504df] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:22"}
+{"level":"info","message":"[8a4a3587] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:27"}
+{"level":"info","message":"[fe7567da] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:32"}
+{"error":"QR refs attempts ended","level":"warn","message":"⚠️ Koneksi WhatsApp terputus","reason":408,"service":"whatsapp-gateway","shouldReconnect":true,"timestamp":"2026-01-19 10:38:35"}
+{"level":"info","message":"🔄 Mencoba reconnect...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:35"}
+{"level":"info","message":"[85eec2c6] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:37"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:38"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:41"}
+{"level":"info","message":"[e1e5229b] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:43"}
+{"level":"info","message":"[6d66554d] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:49"}
+{"level":"info","message":"[1d872510] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:54"}
+{"level":"info","message":"[44dc2fb9] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:38:59"}
+{"level":"info","message":"[03cd479c] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:39:06"}
+{"level":"info","message":"[aa369eb2] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:39:11"}
+{"level":"info","message":"[fb245c5a] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:39:17"}
+{"level":"info","message":"[f3d63685] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:39:22"}
+{"level":"info","message":"[1684c56e] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:39:27"}
+{"level":"info","message":"[fbecffc5] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:39:32"}
+{"level":"info","message":"[bbae8ccd] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:39:37"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:39:41"}
+{"level":"info","message":"[a9ef2328] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:39:42"}
+{"level":"info","message":"[7ceac303] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:39:49"}
+{"level":"info","message":"[48a58585] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:39:55"}
+{"level":"info","message":"[e8f41888] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:01"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:01"}
+{"level":"info","message":"[e38f873e] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:06"}
+{"level":"info","message":"[b98a08af] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:11"}
+{"level":"info","message":"[c5a31ffe] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:16"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:21"}
+{"level":"info","message":"[8752e2c3] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:21"}
+{"level":"info","message":"[4ebb3447] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:27"}
+{"level":"info","message":"[853f29a2] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:32"}
+{"level":"info","message":"[29c635ef] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:37"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:41"}
+{"level":"info","message":"[8ceb405d] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:42"}
+{"level":"info","message":"[244f5c27] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:47"}
+{"level":"info","message":"[129fca49] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:52"}
+{"level":"info","message":"[b1203e3a] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:40:57"}
+{"level":"info","message":"📱 QR Code diterima, menunggu scan...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:01"}
+{"level":"info","message":"[3696c1fc] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:02"}
+{"level":"info","message":"[4329add8] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:07"}
+{"level":"info","message":"[48c1dc63] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:12"}
+{"error":"Stream Errored (restart required)","level":"warn","message":"⚠️ Koneksi WhatsApp terputus","reason":515,"service":"whatsapp-gateway","shouldReconnect":true,"timestamp":"2026-01-19 10:41:13"}
+{"level":"info","message":"🔄 Mencoba reconnect...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:13"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:16"}
+{"level":"info","message":"[1b759d1d] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:18"}
+{"level":"info","message":"[eecf45d6] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:21"}
+{"level":"info","message":"[9bb4b3df] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:24"}
+{"level":"info","message":"[5be9bcae] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:27"}
+{"level":"info","message":"[6e6a4fdc] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:30"}
+{"level":"info","message":"[e3841b32] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:33"}
+{"level":"info","message":"[edf1b02e] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:36"}
+{"level":"info","message":"✅ WhatsApp terhubung sukses!","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:38"}
+{"level":"info","message":"[65ace891] GET / - Status: Connected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:41:41"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:34"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:35"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:35"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:35"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:35"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:35"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:35"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:35"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:35"}
+{"level":"info","message":"[1c60d58c] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:35"}
+{"level":"info","message":"[ab964a7c] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:39"}
+{"level":"info","message":"[8559d07f] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:42"}
+{"level":"info","message":"✅ WhatsApp terhubung sukses!","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:43"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:46"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:46"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:46"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:46"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:46"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:46"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:46"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:46"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:46"}
+{"level":"info","message":"[e4588197] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:47"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:49"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:49"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:49"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:49"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:49"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:49"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:49"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:49"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:49"}
+{"level":"info","message":"[16f2e106] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:50"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:52"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:52"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:52"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:52"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:52"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:52"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:52"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:52"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:52"}
+{"level":"info","message":"[dee060eb] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:53"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:55"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:55"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:55"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:55"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:55"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:55"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:55"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:55"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:55"}
+{"level":"info","message":"[ab0b58ef] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:56"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:59"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:59"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:59"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:59"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:59"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:59"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:59"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:59"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:59"}
+{"level":"info","message":"[f8d8623e] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:47:59"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:03"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:03"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:03"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:03"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:03"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:03"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:03"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:03"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:03"}
+{"level":"info","message":"[6d9653d8] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:03"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:06"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:06"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:06"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:06"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:06"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:06"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:06"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:06"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:06"}
+{"level":"info","message":"[008322bd] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:06"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:10"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:10"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:10"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:10"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:10"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:10"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:10"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:10"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:10"}
+{"level":"info","message":"[4abb38af] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:10"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:14"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:14"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:14"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:14"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:14"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:14"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:14"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:14"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:14"}
+{"level":"info","message":"[d3a5b0f3] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:14"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:17"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:17"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:17"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:17"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:17"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:17"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:17"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:17"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:17"}
+{"level":"info","message":"[c278b559] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:17"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:21"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:21"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:21"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:21"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:21"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:21"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:21"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:21"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:21"}
+{"level":"info","message":"[5a5f9896] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:21"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:25"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:25"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:25"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:25"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:25"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:25"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:25"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:25"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:25"}
+{"level":"info","message":"[f2bb448b] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:25"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:28"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:28"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:28"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:28"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:28"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:28"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:28"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:28"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:28"}
+{"level":"info","message":"[e00f775f] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:28"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:32"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:32"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:32"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:32"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:32"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:32"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:32"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:32"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:32"}
+{"level":"info","message":"[15669ef2] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:32"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:35"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:35"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:35"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:35"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:35"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:35"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:35"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:35"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:35"}
+{"level":"info","message":"[f1826054] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:35"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:38"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:38"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:38"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:38"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:38"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:38"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:38"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:38"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:38"}
+{"level":"info","message":"[2e8c412b] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:38"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:41"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:41"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:41"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:41"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:41"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:41"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:41"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:41"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:41"}
+{"level":"info","message":"[4d9c9881] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:42"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:44"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:44"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:44"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:44"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:44"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:44"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:44"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:44"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:44"}
+{"level":"info","message":"[cf2a911e] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:45"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:47"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:47"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:47"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:47"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:47"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:47"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:47"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:47"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:47"}
+{"level":"info","message":"[b2960c83] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:48"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:50"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:50"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:50"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:50"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:50"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:50"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:50"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:50"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:50"}
+{"level":"info","message":"[3bbd7142] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:51"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:53"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:53"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:53"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:53"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:53"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:53"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:53"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:53"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:53"}
+{"level":"info","message":"[523e5e24] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:54"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:56"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:56"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:56"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:56"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:56"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:56"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:56"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:56"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:56"}
+{"level":"info","message":"[c2ea51c2] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:57"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:59"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:59"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:59"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:59"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:59"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:59"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:59"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:59"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:48:59"}
+{"level":"info","message":"[8b42a355] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:00"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:02"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:02"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:02"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:02"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:02"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:02"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:02"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:02"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:02"}
+{"level":"info","message":"[50e16acd] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:03"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:06"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:06"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:06"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:06"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:06"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:06"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:06"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:06"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:06"}
+{"level":"info","message":"[a261fc52] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:06"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:09"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:09"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:09"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:09"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:09"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:09"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:09"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:09"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:09"}
+{"level":"info","message":"[06c1666b] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:09"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:12"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:12"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:12"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:12"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:12"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:12"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:12"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:12"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:12"}
+{"level":"info","message":"[d7cfd4eb] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:12"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:16"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:16"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:16"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:16"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:16"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:16"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:16"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:16"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:16"}
+{"level":"info","message":"[944fdca4] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:16"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:20"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:20"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:20"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:20"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:20"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:20"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:20"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:20"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:20"}
+{"level":"info","message":"[5b2b86a4] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:20"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:23"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:23"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:23"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:23"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:23"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:23"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:23"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:23"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:23"}
+{"level":"info","message":"[08ba06b4] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:23"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:26"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:26"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:26"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:26"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:26"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:26"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:26"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:26"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:26"}
+{"level":"info","message":"[92d402d3] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:26"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:30"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:30"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:30"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:30"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:30"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:30"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:30"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:30"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:30"}
+{"level":"info","message":"[27e12454] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:30"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:33"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:33"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:33"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:33"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:33"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:33"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:33"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:33"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:33"}
+{"level":"info","message":"[eff2348f] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:33"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:36"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:36"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:36"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:36"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:36"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:36"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:36"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:36"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:36"}
+{"level":"info","message":"[95a23727] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:36"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:39"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:40"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:40"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:40"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:40"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:40"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:40"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:40"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:40"}
+{"level":"info","message":"[cc350d49] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:40"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:48"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:48"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:48"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:48"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:48"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:48"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:48"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:48"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:48"}
+{"level":"info","message":"[8a2cbefd] GET / - Status: Disconnected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:48"}
+{"level":"info","message":"✅ WhatsApp terhubung sukses!","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:50"}
+{"level":"info","message":"[351db3d1] GET / - Status: Connected","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:51"}
+{"level":"info","message":"[589625bf] GET /send-form","service":"whatsapp-gateway","timestamp":"2026-01-19 10:49:55"}
+{"isConnected":true,"level":"info","message":"[3a5a5ccf] POST /send-message","messageLength":15,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-19 10:50:16"}
+{"level":"info","message":"[3a5a5ccf] 📤 Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:50:16"}
+{"level":"info","message":"[3a5a5ccf] ✅ Pesan berhasil terkirim ke 6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-19 10:50:17"}
+{"level":"info","message":"[e2d08e93] GET /send-form","service":"whatsapp-gateway","timestamp":"2026-01-19 10:52:14"}
+{"isConnected":true,"level":"info","message":"[8ad5e11f] POST /send-message","messageLength":8,"number":"082240218605","service":"whatsapp-gateway","timestamp":"2026-01-19 10:52:58"}
+{"level":"info","message":"[8ad5e11f] 📤 Mengirim pesan ke 082240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-19 10:52:58"}
+{"level":"info","message":"[8ad5e11f] ✅ Pesan berhasil terkirim ke 082240218605","service":"whatsapp-gateway","timestamp":"2026-01-19 10:53:58"}
+{"headers":{"content-length":"115","content-type":"application/json","host":"192.168.100.8:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[c50c7264] POST /api/send dari 192.168.100.8","messageLength":76,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-19 11:20:07"}
+{"level":"info","message":"[c50c7264] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-19 11:20:08"}
+{"level":"info","message":"[c50c7264] ✅ API: Pesan terkirim","messageId":"3EB059FD1B9BF029AA10DA","service":"whatsapp-gateway","timestamp":"2026-01-19 11:20:11","to":"6282240218605"}
+{"error":"Connection Terminated","level":"warn","message":"⚠️ Koneksi WhatsApp terputus","reason":428,"service":"whatsapp-gateway","shouldReconnect":true,"timestamp":"2026-01-19 11:20:18"}
+{"level":"info","message":"🔄 Mencoba reconnect...","service":"whatsapp-gateway","timestamp":"2026-01-19 11:20:18"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 11:20:21"}
+{"level":"info","message":"✅ WhatsApp terhubung sukses!","service":"whatsapp-gateway","timestamp":"2026-01-19 11:20:24"}
+{"headers":{"content-length":"389","content-type":"application/json","host":"192.168.100.8:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[87c6753c] POST /api/send dari 192.168.100.8","messageLength":334,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-19 12:05:25"}
+{"level":"info","message":"[87c6753c] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-19 12:05:25"}
+{"level":"info","message":"[87c6753c] ✅ API: Pesan terkirim","messageId":"3EB0E1A4C77F5ADB3B9E64","service":"whatsapp-gateway","timestamp":"2026-01-19 12:05:28","to":"6282240218605"}
+{"headers":{"content-length":"445","content-type":"application/json","host":"192.168.100.8:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[345d8489] POST /api/send dari 192.168.100.8","messageLength":390,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-19 12:09:04"}
+{"level":"info","message":"[345d8489] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-19 12:09:04"}
+{"level":"info","message":"[345d8489] ✅ API: Pesan terkirim","messageId":"3EB0325AFEA1A083061D0E","service":"whatsapp-gateway","timestamp":"2026-01-19 12:09:04","to":"6282240218605"}
+{"headers":{"content-length":"387","content-type":"application/json","host":"192.168.100.8:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[ae6f4b85] POST /api/send dari 192.168.100.8","messageLength":332,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-19 12:15:45"}
+{"level":"info","message":"[ae6f4b85] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-19 12:15:45"}
+{"level":"info","message":"[ae6f4b85] ✅ API: Pesan terkirim","messageId":"3EB08B8F2921523BD23FC6","service":"whatsapp-gateway","timestamp":"2026-01-19 12:15:47","to":"6282240218605"}
+{"headers":{"content-length":"437","content-type":"application/json","host":"192.168.100.8:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[64298020] POST /api/send dari 192.168.100.8","messageLength":386,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-19 12:16:46"}
+{"level":"info","message":"[64298020] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-19 12:16:46"}
+{"level":"info","message":"[64298020] ✅ API: Pesan terkirim","messageId":"3EB0F6DA42B288D81D2E51","service":"whatsapp-gateway","timestamp":"2026-01-19 12:16:46","to":"6282240218605"}
+{"headers":{"content-length":"468","content-type":"application/json","host":"192.168.100.8:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[611b83c7] POST /api/send dari 192.168.100.8","messageLength":406,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-19 14:54:48"}
+{"level":"info","message":"[611b83c7] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-19 14:54:50"}
+{"level":"info","message":"[611b83c7] ✅ API: Pesan terkirim","messageId":"3EB0C6C8E5844EB13654C1","service":"whatsapp-gateway","timestamp":"2026-01-19 14:55:01","to":"6282240218605"}
+{"headers":{"content-length":"468","content-type":"application/json","host":"192.168.100.8:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[848cb76f] POST /api/send dari 192.168.100.8","messageLength":406,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-19 15:41:37"}
+{"level":"info","message":"[848cb76f] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-19 15:41:38"}
+{"level":"info","message":"[848cb76f] ✅ API: Pesan terkirim","messageId":"3EB0F5BF37CA6E576EE0C5","service":"whatsapp-gateway","timestamp":"2026-01-19 15:42:04","to":"6282240218605"}
+{"error":"Connection Terminated","level":"warn","message":"⚠️ Koneksi WhatsApp terputus","reason":428,"service":"whatsapp-gateway","shouldReconnect":true,"timestamp":"2026-01-19 16:05:39"}
+{"level":"info","message":"🔄 Mencoba reconnect...","service":"whatsapp-gateway","timestamp":"2026-01-19 16:05:55"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 16:06:00"}
+{"level":"info","message":"✅ WhatsApp terhubung sukses!","service":"whatsapp-gateway","timestamp":"2026-01-19 16:06:43"}
+{"error":"Connection Terminated","level":"warn","message":"⚠️ Koneksi WhatsApp terputus","reason":428,"service":"whatsapp-gateway","shouldReconnect":true,"timestamp":"2026-01-19 16:35:01"}
+{"level":"info","message":"🔄 Mencoba reconnect...","service":"whatsapp-gateway","timestamp":"2026-01-19 16:35:15"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-19 16:35:18"}
+{"level":"info","message":"✅ WhatsApp terhubung sukses!","service":"whatsapp-gateway","timestamp":"2026-01-19 16:35:35"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:47"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:48"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:48"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:48"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:48"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:48"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:48"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:48"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:48"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:51"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:51"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:51"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:51"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:51"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:51"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:51"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:51"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:51"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:54"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:54"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:54"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:54"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:54"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:54"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:54"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:54"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:54"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:58"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:58"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:58"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:58"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:58"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:58"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:58"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:58"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:02:58"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-20 01:03:05"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:03:05"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-20 01:03:05"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:03:05"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-20 01:03:05"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-20 01:03:05"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-20 01:03:05"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-20 01:03:05"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 01:03:05"}
+{"level":"info","message":"✅ WhatsApp terhubung sukses!","service":"whatsapp-gateway","timestamp":"2026-01-20 01:03:07"}
+{"level":"info","message":"[ddd328da] GET / - Status: Connected","service":"whatsapp-gateway","timestamp":"2026-01-20 01:03:35"}
+{"level":"info","message":"[51d00a52] GET /send-form","service":"whatsapp-gateway","timestamp":"2026-01-20 01:06:31"}
+{"isConnected":true,"level":"info","message":"[8a138e19] POST /send-message","messageLength":5,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 01:06:46"}
+{"level":"info","message":"[8a138e19] 📤 Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 01:06:46"}
+{"level":"info","message":"[8a138e19] ✅ Pesan berhasil terkirim ke 6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 01:06:49"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-20 07:50:48"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 07:50:48"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-20 07:50:48"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 07:50:48"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-20 07:50:48"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-20 07:50:48"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-20 07:50:48"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-20 07:50:48"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 07:50:48"}
+{"level":"info","message":"✅ WhatsApp terhubung sukses!","service":"whatsapp-gateway","timestamp":"2026-01-20 07:50:51"}
+{"level":"info","message":"[d8d41f5a] GET / - Status: Connected","service":"whatsapp-gateway","timestamp":"2026-01-20 07:50:53"}
+{"level":"info","message":"[0eb11ffc] GET /send-form","service":"whatsapp-gateway","timestamp":"2026-01-20 07:53:04"}
+{"isConnected":true,"level":"info","message":"[34a1f679] POST /send-message","messageLength":7,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 07:53:19"}
+{"level":"info","message":"[34a1f679] 📤 Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 07:53:19"}
+{"level":"info","message":"[34a1f679] ✅ Pesan berhasil terkirim ke 6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 07:53:20"}
+{"headers":{"content-length":"747","content-type":"application/json","host":"192.168.100.8:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[efcd4fee] POST /api/send dari 192.168.100.8","messageLength":518,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 08:30:28"}
+{"level":"info","message":"[efcd4fee] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 08:30:28"}
+{"level":"info","message":"[efcd4fee] ✅ API: Pesan terkirim","messageId":"3EB019E01ACC5AF1B25014","service":"whatsapp-gateway","timestamp":"2026-01-20 08:30:30","to":"6282240218605"}
+{"headers":{"content-length":"747","content-type":"application/json","host":"192.168.100.8:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[3793a9dc] POST /api/send dari 192.168.100.8","messageLength":518,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 08:31:30"}
+{"level":"info","message":"[3793a9dc] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 08:31:30"}
+{"level":"info","message":"[3793a9dc] ✅ API: Pesan terkirim","messageId":"3EB0016894C9BF6935D112","service":"whatsapp-gateway","timestamp":"2026-01-20 08:31:30","to":"6282240218605"}
+{"headers":{"content-length":"747","content-type":"application/json","host":"192.168.100.8:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[917b47d3] POST /api/send dari 192.168.100.8","messageLength":518,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 08:31:39"}
+{"level":"info","message":"[917b47d3] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 08:31:39"}
+{"level":"info","message":"[917b47d3] ✅ API: Pesan terkirim","messageId":"3EB0F66A90DF35DF3D0DA4","service":"whatsapp-gateway","timestamp":"2026-01-20 08:31:39","to":"6282240218605"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-20 09:44:12"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 09:44:12"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-20 09:44:12"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 09:44:12"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-20 09:44:12"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-20 09:44:12"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-20 09:44:12"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-20 09:44:12"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 09:44:12"}
+{"level":"info","message":"✅ WhatsApp terhubung sukses!","service":"whatsapp-gateway","timestamp":"2026-01-20 09:44:14"}
+{"level":"info","message":"🔄 Memulai koneksi WhatsApp...","service":"whatsapp-gateway","timestamp":"2026-01-20 09:46:18"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 09:46:18"}
+{"level":"info","message":"🚀 WhatsApp Gateway Server Started","service":"whatsapp-gateway","timestamp":"2026-01-20 09:46:18"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 09:46:18"}
+{"level":"info","message":"📍 Server: http://0.0.0.0:3000","service":"whatsapp-gateway","timestamp":"2026-01-20 09:46:18"}
+{"level":"info","message":"🌍 Environment: development","service":"whatsapp-gateway","timestamp":"2026-01-20 09:46:18"}
+{"level":"info","message":"📝 Log Level: info","service":"whatsapp-gateway","timestamp":"2026-01-20 09:46:18"}
+{"level":"info","message":"🕐 Timezone: Asia/Jakarta","service":"whatsapp-gateway","timestamp":"2026-01-20 09:46:18"}
+{"level":"info","message":"==================================================","service":"whatsapp-gateway","timestamp":"2026-01-20 09:46:18"}
+{"level":"info","message":"✅ WhatsApp terhubung sukses!","service":"whatsapp-gateway","timestamp":"2026-01-20 09:46:20"}
+{"headers":{"content-length":"912","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[d5c42124] POST /api/send dari 192.168.18.105","messageLength":759,"number":"6285161310017","service":"whatsapp-gateway","timestamp":"2026-01-20 10:29:54"}
+{"level":"info","message":"[d5c42124] 📤 API: Mengirim pesan ke 6285161310017@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:29:54"}
+{"level":"info","message":"[d5c42124] ✅ API: Pesan terkirim","messageId":"3EB0BBD0BBB3014B94C4FA","service":"whatsapp-gateway","timestamp":"2026-01-20 10:29:56","to":"6285161310017"}
+{"headers":{"content-length":"1037","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[0233107e] POST /api/send dari 192.168.18.105","messageLength":806,"number":"6285161310017","service":"whatsapp-gateway","timestamp":"2026-01-20 10:29:59"}
+{"level":"info","message":"[0233107e] 📤 API: Mengirim pesan ke 6285161310017@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:29:59"}
+{"level":"info","message":"[0233107e] ✅ API: Pesan terkirim","messageId":"3EB0C816A40A943040127D","service":"whatsapp-gateway","timestamp":"2026-01-20 10:29:59","to":"6285161310017"}
+{"headers":{"content-length":"874","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[c73eaf8c] POST /api/send dari 192.168.18.105","messageLength":732,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:01"}
+{"level":"info","message":"[c73eaf8c] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:01"}
+{"level":"info","message":"[c73eaf8c] ✅ API: Pesan terkirim","messageId":"3EB0A60E951257E8566C37","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:02","to":"6282240218605"}
+{"headers":{"content-length":"1043","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[bd432409] POST /api/send dari 192.168.18.105","messageLength":812,"number":"6286784232213","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:04"}
+{"level":"info","message":"[bd432409] 📤 API: Mengirim pesan ke 6286784232213@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:04"}
+{"level":"info","message":"[bd432409] ✅ API: Pesan terkirim","messageId":"3EB0404FFB40F944F3E784","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:04","to":"6286784232213"}
+{"headers":{"content-length":"873","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[dc442b17] POST /api/send dari 192.168.18.105","messageLength":731,"number":"6282116379147","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:06"}
+{"level":"info","message":"[dc442b17] 📤 API: Mengirim pesan ke 6282116379147@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:06"}
+{"level":"info","message":"[dc442b17] ✅ API: Pesan terkirim","messageId":"3EB0127B8CF6B240E3C7A8","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:06","to":"6282116379147"}
+{"headers":{"content-length":"876","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[76d356e6] POST /api/send dari 192.168.18.105","messageLength":734,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:08"}
+{"level":"info","message":"[76d356e6] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:08"}
+{"level":"info","message":"[76d356e6] ✅ API: Pesan terkirim","messageId":"3EB0D255896D21B7C351AD","service":"whatsapp-gateway","timestamp":"2026-01-20 10:30:08","to":"6282240218605"}
+{"headers":{"content-length":"892","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[78d06ae6] POST /api/send dari 192.168.18.105","messageLength":741,"number":"6285161310017","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:47"}
+{"level":"info","message":"[78d06ae6] 📤 API: Mengirim pesan ke 6285161310017@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:47"}
+{"level":"info","message":"[78d06ae6] ✅ API: Pesan terkirim","messageId":"3EB078D635A57B714362A5","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:49","to":"6285161310017"}
+{"headers":{"content-length":"1017","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[064567f6] POST /api/send dari 192.168.18.105","messageLength":788,"number":"6285161310017","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:52"}
+{"level":"info","message":"[064567f6] 📤 API: Mengirim pesan ke 6285161310017@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:52"}
+{"level":"info","message":"[064567f6] ✅ API: Pesan terkirim","messageId":"3EB025D36CD444B918E84A","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:52","to":"6285161310017"}
+{"headers":{"content-length":"854","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[529c440a] POST /api/send dari 192.168.18.105","messageLength":714,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:54"}
+{"level":"info","message":"[529c440a] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:54"}
+{"level":"info","message":"[529c440a] ✅ API: Pesan terkirim","messageId":"3EB0D2C80732E0D10A0DEE","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:54","to":"6282240218605"}
+{"headers":{"content-length":"1023","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[43006c6e] POST /api/send dari 192.168.18.105","messageLength":794,"number":"6286784232213","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:57"}
+{"level":"info","message":"[43006c6e] 📤 API: Mengirim pesan ke 6286784232213@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:57"}
+{"level":"info","message":"[43006c6e] ✅ API: Pesan terkirim","messageId":"3EB0FDEE0EBFCD810B8208","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:57","to":"6286784232213"}
+{"headers":{"content-length":"853","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[f20d078b] POST /api/send dari 192.168.18.105","messageLength":713,"number":"6282116379147","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:59"}
+{"level":"info","message":"[f20d078b] 📤 API: Mengirim pesan ke 6282116379147@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:59"}
+{"level":"info","message":"[f20d078b] ✅ API: Pesan terkirim","messageId":"3EB0ECC24CE378FFA07402","service":"whatsapp-gateway","timestamp":"2026-01-20 10:54:59","to":"6282116379147"}
+{"headers":{"content-length":"856","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[9bec0594] POST /api/send dari 192.168.18.105","messageLength":716,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 10:55:01"}
+{"level":"info","message":"[9bec0594] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 10:55:01"}
+{"level":"info","message":"[9bec0594] ✅ API: Pesan terkirim","messageId":"3EB0BD31AA4E5C8713CC56","service":"whatsapp-gateway","timestamp":"2026-01-20 10:55:01","to":"6282240218605"}
+{"headers":{"content-length":"923","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[cffadddc] POST /api/send dari 192.168.18.105","messageLength":772,"number":"6285161310017","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:07"}
+{"level":"info","message":"[cffadddc] 📤 API: Mengirim pesan ke 6285161310017@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:07"}
+{"level":"info","message":"[cffadddc] ✅ API: Pesan terkirim","messageId":"3EB0F29948D5CD3BDA3B42","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:07","to":"6285161310017"}
+{"headers":{"content-length":"1048","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[1d350aec] POST /api/send dari 192.168.18.105","messageLength":819,"number":"6285161310017","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:10"}
+{"level":"info","message":"[1d350aec] 📤 API: Mengirim pesan ke 6285161310017@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:10"}
+{"level":"info","message":"[1d350aec] ✅ API: Pesan terkirim","messageId":"3EB0C0A6992CAFD64D685D","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:10","to":"6285161310017"}
+{"headers":{"content-length":"1054","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[c546c385] POST /api/send dari 192.168.18.105","messageLength":825,"number":"6286784232213","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:12"}
+{"level":"info","message":"[c546c385] 📤 API: Mengirim pesan ke 6286784232213@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:12"}
+{"level":"info","message":"[c546c385] ✅ API: Pesan terkirim","messageId":"3EB0DCFD9AC4F62C2B0703","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:13","to":"6286784232213"}
+{"headers":{"content-length":"877","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[7dc470cc] POST /api/send dari 192.168.18.105","messageLength":737,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:15"}
+{"level":"info","message":"[7dc470cc] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:15"}
+{"level":"info","message":"[7dc470cc] ✅ API: Pesan terkirim","messageId":"3EB034A68654C43AE2BF24","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:15","to":"6282240218605"}
+{"headers":{"content-length":"876","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[80e1b69b] POST /api/send dari 192.168.18.105","messageLength":736,"number":"6282116379147","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:17"}
+{"level":"info","message":"[80e1b69b] 📤 API: Mengirim pesan ke 6282116379147@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:17"}
+{"level":"info","message":"[80e1b69b] ✅ API: Pesan terkirim","messageId":"3EB02874CBA29C3BE630AE","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:18","to":"6282116379147"}
+{"headers":{"content-length":"879","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[cb91fcd9] POST /api/send dari 192.168.18.105","messageLength":739,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:20"}
+{"level":"info","message":"[cb91fcd9] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:20"}
+{"level":"info","message":"[cb91fcd9] ✅ API: Pesan terkirim","messageId":"3EB0C36B06607533A45E18","service":"whatsapp-gateway","timestamp":"2026-01-20 11:01:20","to":"6282240218605"}
+{"headers":{"content-length":"930","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[c7fbf123] POST /api/send dari 192.168.18.105","messageLength":808,"number":"6285161310017","service":"whatsapp-gateway","timestamp":"2026-01-20 11:12:26"}
+{"level":"info","message":"[c7fbf123] 📤 API: Mengirim pesan ke 6285161310017@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:12:26"}
+{"level":"info","message":"[c7fbf123] ✅ API: Pesan terkirim","messageId":"3EB0C0F5DADB2DF17B1196","service":"whatsapp-gateway","timestamp":"2026-01-20 11:12:27","to":"6285161310017"}
+{"headers":{"content-length":"936","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[2b7a02fa] POST /api/send dari 192.168.18.105","messageLength":814,"number":"6286784232213","service":"whatsapp-gateway","timestamp":"2026-01-20 11:12:27"}
+{"level":"info","message":"[2b7a02fa] 📤 API: Mengirim pesan ke 6286784232213@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:12:27"}
+{"level":"info","message":"[2b7a02fa] ✅ API: Pesan terkirim","messageId":"3EB0897D41FDA6A730D439","service":"whatsapp-gateway","timestamp":"2026-01-20 11:12:28","to":"6286784232213"}
+{"headers":{"content-length":"923","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[de901c0a] POST /api/send dari 192.168.18.105","messageLength":772,"number":"6285161310017","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:27"}
+{"level":"info","message":"[de901c0a] 📤 API: Mengirim pesan ke 6285161310017@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:27"}
+{"level":"info","message":"[de901c0a] ✅ API: Pesan terkirim","messageId":"3EB07D6B67825B4AD119FB","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:28","to":"6285161310017"}
+{"headers":{"content-length":"877","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[ef5617a6] POST /api/send dari 192.168.18.105","messageLength":737,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:31"}
+{"level":"info","message":"[ef5617a6] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:31"}
+{"level":"info","message":"[ef5617a6] ✅ API: Pesan terkirim","messageId":"3EB0F97D0ED8C4ABA7AB68","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:35","to":"6282240218605"}
+{"headers":{"content-length":"879","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[4a23d0b8] POST /api/send dari 192.168.18.105","messageLength":739,"number":"6282240218605","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:37"}
+{"level":"info","message":"[4a23d0b8] 📤 API: Mengirim pesan ke 6282240218605@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:37"}
+{"level":"info","message":"[4a23d0b8] ✅ API: Pesan terkirim","messageId":"3EB02DDD63C011F2971A7C","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:37","to":"6282240218605"}
+{"headers":{"content-length":"876","content-type":"application/json","host":"192.168.18.105:3000","user-agent":"GuzzleHttp/7"},"isConnected":true,"level":"info","message":"[a1d55baf] POST /api/send dari 192.168.18.105","messageLength":736,"number":"6282116379147","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:39"}
+{"level":"info","message":"[a1d55baf] 📤 API: Mengirim pesan ke 6282116379147@s.whatsapp.net...","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:39"}
+{"level":"info","message":"[a1d55baf] ✅ API: Pesan terkirim","messageId":"3EB0303081A369ECFB14CB","service":"whatsapp-gateway","timestamp":"2026-01-20 11:45:39","to":"6282116379147"}
