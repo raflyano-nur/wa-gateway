@@ -7,6 +7,7 @@ const {
   default: makeWASocket,
   DisconnectReason,
   useMultiFileAuthState,
+  fetchLatestBaileysVersion,
 } = require("@whiskeysockets/baileys");
 const { Boom } = require("@hapi/boom");
 const pino = require("pino");
@@ -18,7 +19,7 @@ const { v4: uuidv4 } = require("uuid");
 const APP_NAME = "WhatsApp Gateway";
 const AUTH_DIR = process.env.WA_AUTH_DIR || "auth_info_baileys";
 const REQUEST_BODY_LIMIT = process.env.REQUEST_BODY_LIMIT || "256kb";
-const MESSAGE_TIMEOUT_MS = Number(process.env.MESSAGE_TIMEOUT_MS || 45000);
+const MESSAGE_TIMEOUT_MS = Number(process.env.MESSAGE_TIMEOUT_MS || 15000);
 const LOGOUT_TIMEOUT_MS = Number(process.env.LOGOUT_TIMEOUT_MS || 15000);
 const RECONNECT_BASE_DELAY_MS = Number(
   process.env.RECONNECT_BASE_DELAY_MS || 3000,
@@ -296,15 +297,23 @@ function processSendQueue() {
     (async () => {
       const queueDelayMs = Date.now() - task.enqueuedAt;
 
-      if (!sock || !isConnected) {
-        throw new Error("WhatsApp belum terhubung");
+      if (
+          !sock ||
+          !isConnected ||
+          !sock.user ||
+          !sock.ws?.isOpen
+      ) {
+          const notConnectedError = new Error("WhatsApp belum terhubung");
+          notConnectedError.code = "NOT_CONNECTED";
+          throw notConnectedError;
       }
 
       const sendStartedAt = Date.now();
+
       const result = await withTimeout(
-        sock.sendMessage(task.jid, { text: task.message }),
-        MESSAGE_TIMEOUT_MS,
-        "Pengiriman pesan",
+          sock.sendMessage(task.jid, { text: task.message }),
+          MESSAGE_TIMEOUT_MS,
+          "Pengiriman pesan"
       );
 
       return {
@@ -314,7 +323,21 @@ function processSendQueue() {
       };
     })()
       .then(task.resolve)
-      .catch(task.reject)
+      .catch((err) => {
+          if (err.message.includes("timeout")) {
+              logger.warn("Send timeout, reconnecting WhatsApp");
+
+              isConnected = false;
+
+              try {
+                  sock?.end?.();
+              } catch {}
+
+              scheduleReconnect("send_timeout");
+          }
+
+          task.reject(err);
+      })
       .finally(() => {
         activeSendCount -= 1;
         setImmediate(processSendQueue);
@@ -427,8 +450,12 @@ async function connectToWhatsApp() {
     logger.info("Memulai koneksi WhatsApp", { authDir: AUTH_DIR });
 
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+
+    logger.info("Versi WA Web dipakai", { version, isLatest });
 
     sock = makeWASocket({
+      version,                    // add this line
       auth: state,
       logger: pino({ level: "silent" }),
       printQRInTerminal: false,
@@ -497,11 +524,16 @@ async function connectToWhatsApp() {
       lastDisconnectReason = reason || "unknown";
       lastDisconnectMessage = disconnectError?.message || "Connection closed";
 
-      logger.warn("Koneksi WhatsApp terputus", {
-        reason: lastDisconnectReason,
-        shouldReconnect,
-        error: lastDisconnectMessage,
+      logger.error("Koneksi WhatsApp terputus", {
+          reason,
+          shouldReconnect,
+          disconnect: lastDisconnect,
+          error: disconnectError,
       });
+
+      console.log("===== CONNECTION CLOSED =====");
+      console.dir(lastDisconnect, { depth: null });
+      console.log("=============================");
 
       if (shouldReconnect) {
         scheduleReconnect("connection_closed");
@@ -518,6 +550,18 @@ async function connectToWhatsApp() {
       }
 
       saveCreds(creds);
+    });
+    sock.ws.on("close", () => {
+        logger.warn("WebSocket closed");
+        isConnected = false;
+    });
+
+    sock.ws.on("error", (err) => {
+        logger.error("WebSocket error", {
+            error: err.message,
+        });
+
+        isConnected = false;
     });
   } catch (error) {
     isConnecting = false;
@@ -1083,8 +1127,10 @@ app.post("/send-message", async (req, res) => {
       stack: error.stack,
     });
 
+    const statusCode = error.code === "NOT_CONNECTED" ? 503 : 500;
+
     return res
-      .status(500)
+      .status(statusCode)
       .send(
         renderSuccessPage(
           "Pengiriman gagal",
@@ -1168,7 +1214,11 @@ app.post("/api/send", async (req, res) => {
     const isQueueFull = error.message.includes(
       "Antrean pengiriman sedang penuh",
     );
-    const statusCode = isQueueFull ? 429 : 500;
+    const statusCode = isQueueFull
+      ? 429
+      : error.code === "NOT_CONNECTED"
+        ? 503
+        : 500;
 
     logger.error(`[${req.id}] API kirim pesan gagal`, {
       clientIp,
