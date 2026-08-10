@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Scan WhatsApp — WA Gateway</title>
+<style>
+  :root {
+    --ink: #14241C;
+    --muted: rgba(20, 36, 28, .55);
+    --paper: #F7F5F0;
+    --line: rgba(20, 36, 28, .1);
+    --brand: #1F7A4D;
+    --brand-dark: #166B41;
+    --brand-soft: #EAF6EF;
+    --amber: #B8752B;
+    --amber-soft: #FBF0E1;
+    --brick: #A23B3B;
+    --brick-soft: #F7EAEA;
+    --brick-soft-2: #F0D6D6;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4%;
+  }
+
+  /* Fluid footprint: shrinks to fit a tiny iframe (e.g. 280x320),
+     caps out at a sensible size when viewed full-page/standalone. */
+  .widget {
+    width: min(92vw, 360px);
+    height: min(92vh, 480px);
+    min-width: 168px;
+    min-height: 190px;
+  }
+
+  .card {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, .97);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: clamp(10px, 6%, 20px);
+    box-shadow: 0 16px 40px rgba(20, 36, 28, .10);
+  }
+
+  .eyebrow {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .brand { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .brand-mark {
+    flex: 0 0 auto;
+    width: 22px; height: 22px;
+    border-radius: 999px;
+    background: var(--brand);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand-label {
+    font-weight: 700;
+    font-size: clamp(9px, 2.6vw, 11px);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(20, 36, 28, .7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pill {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-size: clamp(8px, 2.4vw, 10.5px);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pill-neutral   { background: rgba(20, 36, 28, .06); color: rgba(20, 36, 28, .5); }
+  .pill-waiting   { background: var(--amber-soft); color: var(--amber); }
+  .pill-connected { background: var(--brand-soft); color: var(--brand-dark); }
+  .pill-error     { background: var(--brick-soft); color: var(--brick); }
+  .dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+  .dot-pulse { animation: dotPulse 1.4s ease-in-out infinite; }
+
+  .frame {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: clamp(8px, 3%, 14px);
+    position: relative;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    overflow: hidden;
+  }
+  .layer { position: absolute; inset: 10%; }
+  .hidden { display: none !important; }
+
+  .skeleton {
+    border-radius: 10px;
+    background: rgba(20, 36, 28, .06);
+    animation: pulseBg 1.6s ease-in-out infinite;
+  }
+
+  .qr-wrap { border-radius: 10px; overflow: hidden; background: #fff; }
+  .qr-wrap img { width: 100%; height: 100%; object-fit: contain; padding: 6%; }
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    border-radius: 999px;
+    background: rgba(31, 122, 77, .85);
+    box-shadow: 0 0 8px 2px rgba(31, 122, 77, .45);
+    animation: scan 2.4s cubic-bezier(.45, 0, .55, 1) infinite;
+  }
+
+  .success-wrap {
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(234, 246, 239, .92);
+  }
+  .error-wrap { display: flex; align-items: center; justify-content: center; }
+
+  .badge-circle {
+    width: clamp(34px, 16%, 52px);
+    height: clamp(34px, 16%, 52px);
+    border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--brand);
+    animation: popIn .45s cubic-bezier(.34, 1.56, .64, 1) both;
+  }
+  .badge-circle-error { background: var(--brick-soft-2); animation: none; }
+
+  .corner {
+    position: absolute;
+    width: clamp(10px, 8%, 18px);
+    height: clamp(10px, 8%, 18px);
+  }
+  .corner-tl { top: clamp(5px, 4%, 10px); left: clamp(5px, 4%, 10px); border-top: 2px solid rgba(31, 122, 77, .7); border-left: 2px solid rgba(31, 122, 77, .7); border-radius: 6px 0 0 0; }
+  .corner-tr { top: clamp(5px, 4%, 10px); right: clamp(5px, 4%, 10px); border-top: 2px solid rgba(31, 122, 77, .7); border-right: 2px solid rgba(31, 122, 77, .7); border-radius: 0 6px 0 0; }
+  .corner-bl { bottom: clamp(5px, 4%, 10px); left: clamp(5px, 4%, 10px); border-bottom: 2px solid rgba(31, 122, 77, .7); border-left: 2px solid rgba(31, 122, 77, .7); border-radius: 0 0 0 6px; }
+  .corner-br { bottom: clamp(5px, 4%, 10px); right: clamp(5px, 4%, 10px); border-bottom: 2px solid rgba(31, 122, 77, .7); border-right: 2px solid rgba(31, 122, 77, .7); border-radius: 0 0 6px 0; }
+
+  .helper {
+    flex: 0 0 auto;
+    margin: clamp(6px, 3%, 12px) 0 0;
+    text-align: center;
+    font-size: clamp(9.5px, 2.9vw, 12.5px);
+    line-height: 1.4;
+    color: var(--muted);
+  }
+
+  .footer {
+    flex: 0 0 auto;
+    margin-top: clamp(4px, 2%, 8px);
+    display: flex; align-items: center; justify-content: center;
+    gap: 5px;
+    font-size: clamp(7.5px, 2.2vw, 9.5px);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: rgba(20, 36, 28, .35);
+  }
+  .live-dot { width: 4px; height: 4px; border-radius: 999px; background: var(--brand); animation: dotPulse 1.4s ease-in-out infinite; }
+
+  @keyframes scan   { 0%, 100% { top: 4%; } 50% { top: 88%; } }
+  @keyframes popIn  { 0% { transform: scale(.55); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes pulseBg{ 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+  @keyframes dotPulse{ 0%, 80%, 100% { opacity: .3; } 40% { opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scan-line, .badge-circle, .skeleton, .live-dot, .dot-pulse { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="widget">
+    <div class="card">
+
+      <div class="eyebrow">
+        <div class="brand">
+          <span class="brand-mark">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2C6.48 2 2 6.15 2 11.27c0 2.62 1.18 5 3.11 6.7-.1 1.02-.4 2.6-1.11 3.94 1.6-.14 3.34-.7 4.55-1.42 1.09.32 2.26.5 3.45.5 5.52 0 10-4.15 10-9.27C22 6.15 17.52 2 12 2z"/>
+            </svg>
+          </span>
+          <span class="brand-label">WA Gateway</span>
+        </div>
+        <div id="statusPill" class="pill pill-neutral">
+          <span id="statusDot" class="dot"></span>
+          <span id="statusLabel">Memeriksa...</span>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div id="skeleton" class="layer skeleton"></div>
+
+        <div id="qrWrap" class="layer qr-wrap hidden">
+          <img id="qrImage" alt="Kode QR WhatsApp">
+          <div id="scanLine" class="scan-line"></div>
+        </div>
+
+        <div id="successWrap" class="layer success-wrap hidden">
+          <div class="badge-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <div id="errorWrap" class="layer error-wrap hidden">
+          <div class="badge-circle badge-circle-error">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a1 1 0 00.86 1.5h18.64a1 1 0 00.86-1.5L13.71 3.86a1 1 0 00-1.72 0z" stroke="#A23B3B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <span class="corner corner-tl"></span>
+        <span class="corner corner-tr"></span>
+        <span class="corner corner-bl"></span>
+        <span class="corner corner-br"></span>
+      </div>
+
+      <p id="helperText" class="helper">Menunggu status koneksi terbaru...</p>
+
+      <div class="footer">
+        <span class="live-dot"></span>
+        <span id="lastUpdated">menunggu pembaruan</span>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  var params = new URLSearchParams(location.search);
+  var pollIntervalMs = Number(params.get('interval')) || 5000;
+
+  var statusPill  = document.getElementById('statusPill');
+  var statusDot   = document.getElementById('statusDot');
+  var statusLabel = document.getElementById('statusLabel');
+  var skeleton    = document.getElementById('skeleton');
+  var qrWrap      = document.getElementById('qrWrap');
+  var qrImage     = document.getElementById('qrImage');
+  var successWrap = document.getElementById('successWrap');
+  var errorWrap   = document.getElementById('errorWrap');
+  var helperText  = document.getElementById('helperText');
+  var lastUpdated = document.getElementById('lastUpdated');
+
+  var lastQrUpdatedAt = 0;
+  var hasConnectedOnce = false;
+
+  var TONE = {
+    neutral:   { pill: 'pill-neutral',   pulse: false },
+    waiting:   { pill: 'pill-waiting',   pulse: true },
+    connected: { pill: 'pill-connected', pulse: false },
+    error:     { pill: 'pill-error',     pulse: false }
+  };
+
+  function setPill(label, tone) {
+    var t = TONE[tone];
+    statusLabel.textContent = label;
+    statusPill.className = 'pill ' + t.pill;
+    statusDot.className = 'dot' + (t.pulse ? ' dot-pulse' : '');
+  }
+
+  function showLayer(el) {
+    [skeleton, qrWrap, successWrap, errorWrap].forEach(function (node) {
+      node.classList.toggle('hidden', node !== el);
+    });
+  }
+
+  function stamp() {
+    var now = new Date();
+    lastUpdated.textContent = 'Diperbarui ' + now.toLocaleTimeString('id-ID', { hour12: false });
+  }
+
+  async function refreshStatus() {
+    try {
+      var res = await fetch('/api/status', { cache: 'no-store' });
+      var data = await res.json();
+
+      if (data.logoutInProgress) {
+        setPill('Logout akun...', 'waiting');
+        helperText.textContent = 'Perangkat lama sedang diputus, menyiapkan sesi baru.';
+        showLayer(skeleton);
+      } else if (data.connected) {
+        setPill('Tersambung', 'connected');
+        helperText.textContent = hasConnectedOnce
+          ? 'Perangkat tetap aktif dan siap dipakai.'
+          : 'Berhasil! Perangkat aktif dan siap dipakai.';
+        hasConnectedOnce = true;
+        showLayer(successWrap);
+      } else if (data.hasQR) {
+        setPill('Menunggu pemindaian', 'waiting');
+        helperText.textContent = 'Buka WhatsApp di ponsel Anda, lalu pindai kode ini.';
+
+        if (lastQrUpdatedAt !== data.qrUpdatedAt) {
+          var qrRes = await fetch('/api/qr', { cache: 'no-store' });
+          var qrData = await qrRes.json();
+          if (qrData.qrCodeData) {
+            qrImage.src = qrData.qrCodeData;
+            lastQrUpdatedAt = data.qrUpdatedAt;
+          }
+        }
+        showLayer(qrWrap);
+      } else if (data.lastDisconnectReason === 401) {
+        setPill('Perlu scan ulang', 'error');
+        helperText.textContent = 'Sesi WhatsApp keluar. Menunggu QR baru...';
+        showLayer(errorWrap);
+      } else {
+        setPill('Menyambungkan...', 'waiting');
+        helperText.textContent = 'Koneksi sedang dipulihkan, mohon tunggu.';
+        showLayer(skeleton);
+      }
+      stamp();
+    } catch (err) {
+      setPill('Tidak merespons', 'error');
+      helperText.textContent = 'Server sedang sibuk atau baru saja restart.';
+      showLayer(errorWrap);
+      stamp();
+    }
+  }
+
+  refreshStatus();
+  setInterval(refreshStatus, pollIntervalMs);
+</script>
+</body>
+</html>
