@@ -1,0 +1,94 @@
+[
+  {
+    "id": "07c79c73-6ab8-463d-82ef-96b5c4c291ac",
+    "timestamp": "2026-08-10T08:17:46.690Z",
+    "source": "broadcast",
+    "to": "628***8605@s.whatsapp.net",
+    "type": "text",
+    "message": "Test",
+    "status": "sent",
+    "messageId": "3EB07A205B00F1D48F7E68",
+    "requestId": "8d6e6147"
+  },
+  {
+    "id": "ab7b3b49-41b4-4ed4-b2af-98296cba0a46",
+    "timestamp": "2026-08-10T08:17:46.704Z",
+    "source": "broadcast",
+    "to": "628***1744@s.whatsapp.net",
+    "type": "text",
+    "message": "Test",
+    "status": "sent",
+    "messageId": "3EB00821E8B2B0965BB486",
+    "requestId": "8d6e6147"
+  },
+  {
+    "id": "8113f427-6c13-4942-b892-675bfdde32e0",
+    "timestamp": "2026-08-10T08:20:11.408Z",
+    "source": "scheduled",
+    "to": "628***8605@s.whatsapp.net",
+    "type": "text",
+    "message": "Aku Coba wa yang terjadwal ya",
+    "status": "sent",
+    "messageId": "3EB036EF5DD772B7883C4C"
+  },
+  {
+    "id": "6b77ae49-59f6-4e6b-a7ed-b6576bab6544",
+    "timestamp": "2026-08-16T09:21:22.905Z",
+    "source": "form",
+    "sessionId": "6d5af68c",
+    "to": "628***8605@s.whatsapp.net",
+    "type": "text",
+    "message": "Test ini wa dari kandang ingkung",
+    "status": "sent",
+    "messageId": "3EB067C7D5C4B90A864FBD",
+    "requestId": "04dfb9d3"
+  },
+  {
+    "id": "c3670bd0-3737-4bac-af93-62e894adb062",
+    "timestamp": "2026-08-16T09:21:39.627Z",
+    "source": "form",
+    "sessionId": "ad703117",
+    "to": "628***8605@s.whatsapp.net",
+    "type": "text",
+    "message": "Ini wa dari nirwana stable",
+    "status": "sent",
+    "messageId": "3EB02B2F4BA940FA82FAA1",
+    "requestId": "b12186a6"
+  },
+  {
+    "id": "7a4028f7-ea06-451f-95c3-15414c834c49",
+    "timestamp": "2026-08-16T09:24:44.480Z",
+    "source": "form",
+    "sessionId": "6d5af68c",
+    "to": "628***8605@s.whatsapp.net",
+    "type": "text",
+    "message": "text",
+    "status": "sent",
+    "messageId": "3EB03A7B4C8B90B5FE0D9A",
+    "requestId": "01c176db"
+  },
+  {
+    "id": "46b9e000-33d9-44fd-b7df-c3b853e2f965",
+    "timestamp": "2026-08-16T09:25:02.838Z",
+    "source": "form",
+    "sessionId": "ad703117",
+    "to": "628***1744@s.whatsapp.net",
+    "type": "text",
+    "message": "Test",
+    "status": "sent",
+    "messageId": "3EB0C995C323AF31EFDBB1",
+    "requestId": "b746f39a"
+  },
+  {
+    "id": "2d2c2e14-11a0-4749-a373-c980e6c75bb2",
+    "timestamp": "2026-08-16T09:25:26.293Z",
+    "source": "form",
+    "sessionId": "6d5af68c",
+    "to": "628***1744@s.whatsapp.net",
+    "type": "text",
+    "message": "test ting",
+    "status": "sent",
+    "messageId": "3EB00686EA7A8550A8A611",
+    "requestId": "990373f9"
+  }
+]
