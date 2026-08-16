@@ -203,7 +203,7 @@
               <path d="M12 2C6.48 2 2 6.15 2 11.27c0 2.62 1.18 5 3.11 6.7-.1 1.02-.4 2.6-1.11 3.94 1.6-.14 3.34-.7 4.55-1.42 1.09.32 2.26.5 3.45.5 5.52 0 10-4.15 10-9.27C22 6.15 17.52 2 12 2z"/>
             </svg>
           </span>
-          <span class="brand-label">WA Gateway</span>
+          <span id="brandLabel" class="brand-label">WA Gateway</span>
         </div>
         <div id="statusPill" class="pill pill-neutral">
           <span id="statusDot" class="dot"></span>
@@ -254,7 +254,10 @@
 <script>
   var params = new URLSearchParams(location.search);
   var pollIntervalMs = Number(params.get('interval')) || 5000;
+  var sessionParam = params.get('session');
+  var sessionQuery = sessionParam ? '&session=' + encodeURIComponent(sessionParam) : '';
 
+  var brandLabel  = document.getElementById('brandLabel');
   var statusPill  = document.getElementById('statusPill');
   var statusDot   = document.getElementById('statusDot');
   var statusLabel = document.getElementById('statusLabel');
@@ -296,8 +299,12 @@
 
   async function refreshStatus() {
     try {
-      var res = await fetch('/api/status', { cache: 'no-store' });
+      var res = await fetch('/api/status?_=1' + sessionQuery, { cache: 'no-store' });
       var data = await res.json();
+
+      if (data.sessionName) {
+        brandLabel.textContent = data.sessionName;
+      }
 
       if (data.logoutInProgress) {
         setPill('Logout akun...', 'waiting');
@@ -315,7 +322,7 @@
         helperText.textContent = 'Buka WhatsApp di ponsel Anda, lalu pindai kode ini.';
 
         if (lastQrUpdatedAt !== data.qrUpdatedAt) {
-          var qrRes = await fetch('/api/qr', { cache: 'no-store' });
+          var qrRes = await fetch('/api/qr?_=1' + sessionQuery, { cache: 'no-store' });
           var qrData = await qrRes.json();
           if (qrData.qrCodeData) {
             qrImage.src = qrData.qrCodeData;
