@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#100b0d" />
+    <title id="pageTitle">
+      WhatsApp Gateway | Real-time messaging infrastructure
+    </title>
+    <style>
+      :root {
+        --ink: #f7f3ef;
+        --muted: #b8a9a4;
+        --night: #100b0d;
+        --panel: #1b1114;
+        --line: rgba(255, 255, 255, 0.14);
+        --hot: #ff5e55;
+        --mint: #a4f1cd;
+        --violet: #a28cff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--night);
+        font-family: Georgia, "Times New Roman", serif;
+      }
+      body.light {
+        --ink: #1e1517;
+        --muted: #766967;
+        --night: #f4efeb;
+        --panel: #fffaf7;
+        --line: rgba(30, 21, 23, 0.16);
+      }
+      body.light .hero {
+        background:
+          radial-gradient(
+            circle at 50% 46%,
+            rgba(255, 120, 98, 0.2),
+            transparent 27%
+          ),
+          linear-gradient(115deg, #fff9f5 0%, #f2e9e4 58%, #fff8f3 100%);
+      }
+      body.light .hero:before {
+        background-image:
+          linear-gradient(rgba(30, 21, 23, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(30, 21, 23, 0.06) 1px, transparent 1px);
+      }
+      body.light .nav {
+        color: #655755;
+      }
+      body.light .nav a:hover {
+        color: #1e1517;
+      }
+      body.light .nav-cta {
+        color: #1e1517;
+      }
+      body.light .hero-copy {
+        color: #5e504e;
+      }
+      body.light .button {
+        border-color: rgba(30, 21, 23, 0.25);
+        color: #1e1517;
+      }
+      body.light .button.primary {
+        background: #1e1517;
+        color: #fffaf7;
+        border-color: #1e1517;
+      }
+      body.light .section.dark {
+        background: #fffaf7;
+        color: #1e1517;
+      }
+      body.light .terminal {
+        background: #171114;
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font:
+          700 11px Arial,
+          sans-serif;
+      }
+      .control-button {
+        min-width: 68px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 9px 11px;
+        color: inherit;
+        background: transparent;
+        cursor: pointer;
+      }
+      .control-button .control-icon {
+        margin-right: 5px;
+        font-size: 13px;
+      }
+      .control-button:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .shell {
+        width: min(1180px, calc(100% - 48px));
+        margin: auto;
+      }
+      .topbar {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 22px 0;
+        font-family: Arial, sans-serif;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .mark {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        background: var(--hot);
+        color: #160b0d;
+        font-weight: 900;
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+        color: #d5c7c4;
+        font-size: 13px;
+      }
+      .nav a:hover {
+        color: #fff;
+      }
+      .nav-cta {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 10px 16px;
+        color: #fff;
+      }
+      .hero {
+        position: relative;
+        min-height: 650px;
+        overflow: hidden;
+        background:
+          radial-gradient(
+            circle at 50% 46%,
+            rgba(175, 44, 42, 0.42),
+            transparent 27%
+          ),
+          linear-gradient(115deg, #160d10 0%, #080708 58%, #150e12 100%);
+      }
+      .hero:before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0.45;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+        background-size: 64px 64px;
+        mask-image: linear-gradient(to bottom, black, transparent 75%);
+      }
+      .orb {
+        position: absolute;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 50%;
+        box-shadow:
+          inset 0 0 22px rgba(255, 255, 255, 0.06),
+          0 0 24px rgba(255, 91, 80, 0.12);
+      }
+      .orb.one {
+        width: 320px;
+        height: 320px;
+        left: calc(50% - 160px);
+        top: 130px;
+        border-width: 26px;
+        border-color: rgba(201, 49, 47, 0.48);
+      }
+      .orb.two {
+        width: 178px;
+        height: 178px;
+        left: calc(50% - 89px);
+        top: 201px;
+        border-width: 16px;
+        border-color: rgba(255, 96, 83, 0.35);
+      }
+      .orb.three {
+        width: 18px;
+        height: 18px;
+        left: 18%;
+        top: 210px;
+      }
+      .orb.four {
+        width: 48px;
+        height: 48px;
+        right: 17%;
+        top: 168px;
+      }
+      .orb.five {
+        width: 28px;
+        height: 28px;
+        right: 8%;
+        bottom: 150px;
+      }
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        padding: 92px 0 128px;
+        text-align: center;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--mint);
+        font:
+          700 12px/1 Arial,
+          sans-serif;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .eyebrow i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--mint);
+        box-shadow: 0 0 14px var(--mint);
+      }
+      h1 {
+        max-width: 880px;
+        margin: 28px auto 0;
+        font-size: clamp(54px, 9vw, 112px);
+        line-height: 0.88;
+        letter-spacing: -0.065em;
+        font-weight: 500;
+      }
+      h1 em {
+        color: var(--hot);
+        font-style: normal;
+      }
+      .hero-copy {
+        max-width: 610px;
+        margin: 30px auto 0;
+        color: #d9cdca;
+        font:
+          18px/1.55 Arial,
+          sans-serif;
+      }
+      .actions {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 34px;
+        font:
+          700 14px Arial,
+          sans-serif;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 8px;
+        padding: 14px 20px;
+        transition:
+          transform 0.2s,
+          background 0.2s;
+      }
+      .button:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .button.primary {
+        background: #fff;
+        color: #191114;
+        border-color: #fff;
+      }
+      .button.primary:hover {
+        background: var(--mint);
+      }
+      .signal {
+        position: absolute;
+        bottom: 28px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #b8aaa6;
+        font:
+          11px Arial,
+          sans-serif;
+      }
+      .signal b {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--mint);
+        box-shadow: 0 0 12px var(--mint);
+      }
+      .section {
+        padding: 92px 0;
+        background: #f5f1ed;
+        color: #1e1517;
+      }
+      .section.dark {
+        background: #160f12;
+        color: var(--ink);
+      }
+      .section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 28px;
+        margin-bottom: 34px;
+      }
+      .kicker {
+        color: #b44b45;
+        font:
+          700 11px Arial,
+          sans-serif;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+      h2 {
+        margin: 8px 0 0;
+        font-size: clamp(34px, 5vw, 64px);
+        line-height: 0.95;
+        letter-spacing: -0.05em;
+        font-weight: 500;
+      }
+      .section-head p {
+        max-width: 360px;
+        color: #766967;
+        font:
+          14px/1.55 Arial,
+          sans-serif;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .card {
+        min-height: 220px;
+        padding: 24px;
+        border: 1px solid rgba(30, 21, 23, 0.14);
+        border-radius: 10px;
+        background: #fffaf7;
+      }
+      .card.dark-card {
+        border-color: var(--line);
+        background: var(--panel);
+      }
+      .card-num {
+        color: #b44b45;
+        font:
+          700 12px Arial,
+          sans-serif;
+      }
+      .card h3 {
+        margin: 46px 0 10px;
+        font-size: 25px;
+        letter-spacing: -0.04em;
+        font-weight: 500;
+      }
+      .card p {
+        margin: 0;
+        color: #776966;
+        font:
+          14px/1.55 Arial,
+          sans-serif;
+      }
+      .dark-card p {
+        color: var(--muted);
+      }
+      .terminal {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #0d090b;
+        box-shadow: 0 20px 55px rgba(0, 0, 0, 0.26);
+      }
+      .terminal-bar {
+        display: flex;
+        gap: 7px;
+        padding: 13px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      .terminal-bar i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ff6258;
+      }
+      .terminal-bar i:nth-child(2) {
+        background: #ffc857;
+      }
+      .terminal-bar i:nth-child(3) {
+        background: #70d6a5;
+      }
+      pre {
+        margin: 0;
+        padding: 26px;
+        overflow: auto;
+        color: #c9d7cf;
+        font:
+          14px/1.8 Consolas,
+          monospace;
+      }
+      .code-hot {
+        color: var(--hot);
+      }
+      .code-mint {
+        color: var(--mint);
+      }
+      .code-violet {
+        color: var(--violet);
+      }
+      .integration-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .integration-card {
+        min-height: 178px;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .integration-card strong {
+        display: block;
+        color: var(--mint);
+        font:
+          700 12px Arial,
+          sans-serif;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .integration-card h3 {
+        margin: 32px 0 8px;
+        font-size: 24px;
+        font-weight: 500;
+      }
+      .integration-card p {
+        margin: 0;
+        color: var(--muted);
+        font:
+          13px/1.55 Arial,
+          sans-serif;
+      }
+      .integration-note {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .integration-note > div {
+        padding: 18px 22px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #0d090b;
+      }
+      .integration-note strong {
+        display: block;
+        color: var(--mint);
+        font:
+          700 12px Arial,
+          sans-serif;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .integration-note p {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font:
+          13px/1.55 Arial,
+          sans-serif;
+      }
+      .integration-note code {
+        color: var(--hot);
+        font:
+          12px Consolas,
+          monospace;
+      }
+      .footer {
+        padding: 24px 0;
+        background: #100b0d;
+        color: #8e7f7d;
+        font:
+          12px Arial,
+          sans-serif;
+      }
+      .footer-inner {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      @media (max-width: 760px) {
+        .shell {
+          width: min(100% - 28px, 560px);
+        }
+        .nav {
+          display: none;
+        }
+        .hero {
+          min-height: 680px;
+        }
+        .hero-content {
+          padding-top: 85px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .integration-grid,
+        .integration-note {
+          grid-template-columns: 1fr;
+        }
+        .section-head {
+          display: block;
+        }
+        .section-head p {
+          margin-top: 18px;
+        }
+        .actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .button {
+          justify-content: center;
+        }
+        .footer-inner {
+          display: block;
+        }
+        .footer-inner span {
+          display: block;
+          margin-top: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="hero">
+      <div class="shell">
+        <header class="topbar">
+          <a class="brand" href="/landing"
+            ><span class="mark">W</span><span>WhatsApp Gateway</span></a
+          >
+          <nav class="nav">
+            <a href="#capabilities" id="navCapabilities">Capabilities</a
+            ><a href="#integration" id="navIntegration">Integration</a
+            ><a href="/docs" id="navDocs">Docs</a
+            ><a class="nav-cta" href="/login" id="navDashboard"
+              >Open dashboard</a
+            >
+          </nav>
+          <div class="controls">
+            <button
+              class="control-button"
+              id="languageToggle"
+              type="button"
+              aria-label="Change language"
+            >
+              <span class="control-icon" id="languageIcon">🇬🇧</span
+              ><span id="languageLabel">EN</span>
+            </button>
+            <button
+              class="control-button"
+              id="themeToggle"
+              type="button"
+              aria-label="Change theme"
+            >
+              <span class="control-icon" id="themeIcon">☀</span
+              ><span id="themeLabel">Light</span>
+            </button>
+          </div>
+        </header>
+        <div class="orb one"></div>
+        <div class="orb two"></div>
+        <div class="orb three"></div>
+        <div class="orb four"></div>
+        <div class="orb five"></div>
+        <div class="hero-content">
+          <div class="eyebrow" id="heroEyebrow">
+            <i></i> WhatsApp infrastructure, without the busywork
+          </div>
+          <h1 id="heroTitle">
+            Move messages<br /><em>at the speed of now.</em>
+          </h1>
+          <p class="hero-copy" id="heroCopy">
+            A focused gateway for connected WhatsApp sessions, reliable
+            delivery, scheduled sends, broadcast workflows, and realtime
+            operational signal.
+          </p>
+          <div class="actions">
+            <a class="button primary" href="/login" id="heroDashboard"
+              >Enter admin dashboard <span>→</span></a
+            ><a class="button" href="/docs" id="heroDocs"
+              >Read API docs <span>↗</span></a
+            >
+          </div>
+        </div>
+        <div class="signal">
+          <b></b><span id="signalText">Checking gateway signal...</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="capabilities" class="section">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <div class="kicker" id="capabilityKicker">One control surface</div>
+            <h2 id="capabilityTitle">Keep the conversation<br />in motion.</h2>
+          </div>
+          <p id="capabilityCopy">
+            Everything the operator needs, in one quiet place. Connect a
+            session, send with intent, and see what happened.
+          </p>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <div class="card-num" id="cardLabel1">01 / CONNECT</div>
+            <h3 id="cardTitle1">Session control</h3>
+            <p id="cardCopy1">
+              Pair WhatsApp accounts, monitor QR state, reconnect cleanly, and
+              keep each session visible.
+            </p>
+          </article>
+          <article class="card">
+            <div class="card-num" id="cardLabel2">02 / DELIVER</div>
+            <h3 id="cardTitle2">Send at scale</h3>
+            <p id="cardCopy2">
+              Text, files, broadcast, and scheduled delivery through a single
+              API contract.
+            </p>
+          </article>
+          <article class="card">
+            <div class="card-num" id="cardLabel3">03 / OBSERVE</div>
+            <h3 id="cardTitle3">Realtime signal</h3>
+            <p id="cardCopy3">
+              Feed operational events through Centrifugo so status changes
+              arrive when they happen.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="integration" class="section dark">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <div class="kicker" id="integrationKicker">Built for backends</div>
+            <h2 id="integrationTitle">Your stack.<br />Our transport.</h2>
+          </div>
+          <p id="integrationCopy" style="color: #b8a9a4">
+            Laravel, Express, Python, or a plain HTTP client. Keep business
+            logic where it belongs.
+          </p>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar"><i></i><i></i><i></i></div>
+          <pre><span class="code-violet">curl</span> -X POST http://localhost:5000/api/send \
+  -H <span class="code-mint">"X-API-Key: YOUR_API_KEY"</span> \
+  -H <span class="code-mint">"Content-Type: application/json"</span> \
+  -d <span class="code-hot">'{"number":"628123456789","message":"<span id="codeMessage">Hello from the gateway</span>"}'</span></pre>
+        </div>
+        <div class="integration-grid">
+          <article class="integration-card">
+            <strong id="integrationLaravelLabel">Laravel</strong>
+            <h3 id="integrationLaravelTitle">Native HTTP client</h3>
+            <p id="integrationLaravelCopy">
+              Use Laravel's HTTP client, keep the API key server-side, and
+              dispatch messages from jobs or events.
+            </p>
+          </article>
+          <article class="integration-card">
+            <strong id="integrationNodeLabel">Express / Node</strong>
+            <h3 id="integrationNodeTitle">One small client</h3>
+            <p id="integrationNodeCopy">
+              Wrap the gateway with Axios or fetch and reuse the same contract
+              across services.
+            </p>
+          </article>
+          <article class="integration-card">
+            <strong id="integrationPythonLabel">Python</strong>
+            <h3 id="integrationPythonTitle">Simple requests</h3>
+            <p id="integrationPythonCopy">
+              Send from workers, cron jobs, or business events with a standard
+              HTTP request.
+            </p>
+          </article>
+        </div>
+        <div class="integration-note">
+          <div>
+            <strong id="integrationRealtimeTitle"
+              >Realtime with Centrifugo</strong
+            >
+            <p id="integrationRealtimeCopy">
+              Subscribe your dashboard to <code>wa-gateway:admin</code> and
+              receive session and delivery events without waiting for the next
+              poll.
+            </p>
+          </div>
+          <div>
+            <strong id="integrationConfigTitle">Three values to connect</strong>
+            <p id="integrationConfigCopy">
+              <code>BASE_URL</code> · <code>X-API-KEY</code> ·
+              <code>SESSION_ID</code>. Keep secrets in the backend environment,
+              never in public browser code.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="shell footer-inner">
+        <strong>WhatsApp Gateway</strong
+        ><span id="footerCopy"
+          >Admin-only operations · HTTP API · Realtime events</span
+        ><span>© 2026</span>
+      </div>
+    </footer>
+    <script>
+      var copy = {
+        id: {
+          navCapabilities: "Kapabilitas",
+          navIntegration: "Integrasi",
+          navDocs: "Docs",
+          navDashboard: "Buka dashboard",
+          heroEyebrow: "Infrastruktur WhatsApp, tanpa pekerjaan berulang",
+          heroTitle: "Gerakkan pesan<br><em>secepat sekarang.</em>",
+          heroCopy:
+            "Gateway terarah untuk session WhatsApp, delivery yang andal, pesan terjadwal, workflow broadcast, dan sinyal operasional realtime.",
+          heroDashboard: "Masuk ke dashboard admin <span>→</span>",
+          heroDocs: "Baca API docs <span>↗</span>",
+          pageTitle: "WhatsApp Gateway | Infrastruktur messaging realtime",
+          cardLabel1: "01 / HUBUNGKAN",
+          cardLabel2: "02 / KIRIM",
+          cardLabel3: "03 / PANTAU",
+          codeMessage: "Halo dari gateway",
+          footerCopy: "Operasional admin · HTTP API · Event realtime",
+          capabilityKicker: "Satu control surface",
+          capabilityTitle: "Jaga percakapan<br>tetap bergerak.",
+          capabilityCopy:
+            "Semua yang dibutuhkan operator, di satu tempat yang tenang. Hubungkan session, kirim dengan tujuan, dan lihat hasilnya.",
+          cardTitle1: "Kontrol session",
+          cardCopy1:
+            "Hubungkan akun WhatsApp, pantau QR, reconnect dengan bersih, dan lihat setiap session.",
+          cardTitle2: "Kirim dalam skala",
+          cardCopy2:
+            "Pesan teks, file, broadcast, dan pengiriman terjadwal melalui satu kontrak API.",
+          cardTitle3: "Sinyal realtime",
+          cardCopy3:
+            "Alirkan event operasional lewat Centrifugo agar perubahan status datang saat terjadi.",
+          integrationKicker: "Dibuat untuk backend",
+          integrationTitle: "Stack kamu.<br>Transport kami.",
+          integrationCopy:
+            "Laravel, Express, Python, atau HTTP client biasa. Simpan business logic di tempatnya.",
+          integrationLaravelTitle: "HTTP client native",
+          integrationLaravelCopy:
+            "Pakai HTTP client Laravel, simpan API key di server, lalu kirim pesan dari job atau event.",
+          integrationNodeTitle: "Satu client kecil",
+          integrationNodeCopy:
+            "Bungkus gateway dengan Axios atau fetch dan gunakan kontrak yang sama di semua service.",
+          integrationPythonTitle: "Requests sederhana",
+          integrationPythonCopy:
+            "Kirim dari worker, cron job, atau business event dengan HTTP request standar.",
+          integrationRealtimeTitle: "Realtime dengan Centrifugo",
+          integrationRealtimeCopy:
+            "Subscribe dashboard ke wa-gateway:admin dan terima event session serta delivery tanpa menunggu polling berikutnya.",
+          integrationConfigTitle: "Tiga nilai untuk terhubung",
+          integrationConfigCopy:
+            "BASE_URL · X-API-KEY · SESSION_ID. Simpan secret di environment backend, jangan di browser publik.",
+          signalChecking: "Memeriksa sinyal gateway...",
+          signalConnected: "Gateway online · session WhatsApp terhubung",
+          signalWaiting: "Gateway online · menunggu session WhatsApp",
+          signalUnavailable: "Sinyal gateway tidak tersedia",
+          themeLight: "Terang",
+          themeDark: "Gelap",
+        },
+        en: {
+          navCapabilities: "Capabilities",
+          navIntegration: "Integration",
+          navDocs: "Docs",
+          navDashboard: "Open dashboard",
+          heroEyebrow: "WhatsApp infrastructure, without the busywork",
+          heroTitle: "Move messages<br><em>at the speed of now.</em>",
+          heroCopy:
+            "A focused gateway for connected WhatsApp sessions, reliable delivery, scheduled sends, broadcast workflows, and realtime operational signal.",
+          heroDashboard: "Enter admin dashboard <span>→</span>",
+          heroDocs: "Read API docs <span>↗</span>",
+          pageTitle: "WhatsApp Gateway | Real-time messaging infrastructure",
+          cardLabel1: "01 / CONNECT",
+          cardLabel2: "02 / DELIVER",
+          cardLabel3: "03 / OBSERVE",
+          codeMessage: "Hello from the gateway",
+          footerCopy: "Admin-only operations · HTTP API · Realtime events",
+          capabilityKicker: "One control surface",
+          capabilityTitle: "Keep the conversation<br>in motion.",
+          capabilityCopy:
+            "Everything the operator needs, in one quiet place. Connect a session, send with intent, and see what happened.",
+          cardTitle1: "Session control",
+          cardCopy1:
+            "Pair WhatsApp accounts, monitor QR state, reconnect cleanly, and keep each session visible.",
+          cardTitle2: "Send at scale",
+          cardCopy2:
+            "Text, files, broadcast, and scheduled delivery through a single API contract.",
+          cardTitle3: "Realtime signal",
+          cardCopy3:
+            "Feed operational events through Centrifugo so status changes arrive when they happen.",
+          integrationKicker: "Built for backends",
+          integrationTitle: "Your stack.<br>Our transport.",
+          integrationCopy:
+            "Laravel, Express, Python, or a plain HTTP client. Keep business logic where it belongs.",
+          integrationLaravelTitle: "Native HTTP client",
+          integrationLaravelCopy:
+            "Use Laravel's HTTP client, keep the API key server-side, and dispatch messages from jobs or events.",
+          integrationNodeTitle: "One small client",
+          integrationNodeCopy:
+            "Wrap the gateway with Axios or fetch and reuse the same contract across services.",
+          integrationPythonTitle: "Simple requests",
+          integrationPythonCopy:
+            "Send from workers, cron jobs, or business events with a standard HTTP request.",
+          integrationRealtimeTitle: "Realtime with Centrifugo",
+          integrationRealtimeCopy:
+            "Subscribe your dashboard to wa-gateway:admin and receive session and delivery events without waiting for the next poll.",
+          integrationConfigTitle: "Three values to connect",
+          integrationConfigCopy:
+            "BASE_URL · X-API-KEY · SESSION_ID. Keep secrets in the backend environment, never in public browser code.",
+          signalChecking: "Checking gateway signal...",
+          signalConnected: "Gateway online · WhatsApp session connected",
+          signalWaiting: "Gateway online · waiting for WhatsApp session",
+          signalUnavailable: "Gateway signal unavailable",
+          themeLight: "Light",
+          themeDark: "Dark",
+        },
+      };
+      var language = localStorage.getItem("wa_gateway_language") || "id";
+      var lightMode = localStorage.getItem("wa_gateway_theme") === "light";
+      var languageToggle = document.getElementById("languageToggle");
+      var themeToggle = document.getElementById("themeToggle");
+      var languageIcon = document.getElementById("languageIcon");
+      var languageLabel = document.getElementById("languageLabel");
+      var themeIcon = document.getElementById("themeIcon");
+      var themeLabel = document.getElementById("themeLabel");
+      var gatewayState = "checking";
+
+      function renderSignal() {
+        var active = copy[language];
+        var labels = {
+          checking: active.signalChecking,
+          connected: active.signalConnected,
+          waiting: active.signalWaiting,
+          unavailable: active.signalUnavailable,
+        };
+        document.getElementById("signalText").textContent =
+          labels[gatewayState];
+      }
+
+      function applyPreferences() {
+        var active = copy[language];
+        document.documentElement.lang = language;
+        document.body.classList.toggle("light", lightMode);
+        [
+          "navCapabilities",
+          "navIntegration",
+          "navDocs",
+          "navDashboard",
+          "pageTitle",
+          "heroEyebrow",
+          "heroTitle",
+          "heroCopy",
+          "heroDashboard",
+          "heroDocs",
+          "cardLabel1",
+          "cardLabel2",
+          "cardLabel3",
+          "codeMessage",
+          "footerCopy",
+          "capabilityKicker",
+          "capabilityTitle",
+          "capabilityCopy",
+          "cardTitle1",
+          "cardCopy1",
+          "cardTitle2",
+          "cardCopy2",
+          "cardTitle3",
+          "cardCopy3",
+          "integrationKicker",
+          "integrationTitle",
+          "integrationCopy",
+          "integrationLaravelTitle",
+          "integrationLaravelCopy",
+          "integrationNodeTitle",
+          "integrationNodeCopy",
+          "integrationPythonTitle",
+          "integrationPythonCopy",
+          "integrationRealtimeTitle",
+          "integrationRealtimeCopy",
+          "integrationConfigTitle",
+          "integrationConfigCopy",
+        ].forEach(function (id) {
+          var element = document.getElementById(id);
+          if (element) element.innerHTML = active[id];
+        });
+        languageIcon.textContent = language === "id" ? "🇬🇧" : "🇮🇩";
+        languageLabel.textContent = language === "id" ? "EN" : "ID";
+        languageToggle.setAttribute(
+          "aria-label",
+          language === "id" ? "Switch to English" : "Ganti ke Bahasa Indonesia",
+        );
+        themeIcon.textContent = lightMode ? "☾" : "☀";
+        themeLabel.textContent = lightMode
+          ? active.themeDark
+          : active.themeLight;
+        renderSignal();
+      }
+
+      languageToggle.addEventListener("click", function () {
+        language = language === "id" ? "en" : "id";
+        localStorage.setItem("wa_gateway_language", language);
+        applyPreferences();
+      });
+      themeToggle.addEventListener("click", function () {
+        lightMode = !lightMode;
+        localStorage.setItem("wa_gateway_theme", lightMode ? "light" : "dark");
+        applyPreferences();
+      });
+      applyPreferences();
+
+      fetch("/api/status", { cache: "no-store" })
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (data) {
+          var connected =
+            data.connected ||
+            data.status === "connected" ||
+            data.state === "open";
+          gatewayState = connected ? "connected" : "waiting";
+          renderSignal();
+        })
+        .catch(function () {
+          gatewayState = "unavailable";
+          renderSignal();
+        });
+    </script>
+  </body>
+</html>

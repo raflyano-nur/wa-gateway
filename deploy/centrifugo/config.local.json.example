@@ -1,0 +1,35 @@
+{
+  "http_server": {
+    "address": "127.0.0.1",
+    "port": 8100
+  },
+  "http_api": {
+    "key": "REPLACE_WITH_A_LONG_RANDOM_CENTRIFUGO_API_KEY"
+  },
+  "client": {
+    "allow_anonymous_connect_without_token": true,
+    "allowed_origins": ["http://localhost:5000"]
+  },
+  "channel": {
+    "namespaces": [
+      {
+        "name": "wa-gateway",
+        "allow_subscribe_for_anonymous": true,
+        "history_size": 20,
+        "history_ttl": "5m"
+      },
+      {
+        "name": "project-a",
+        "allow_subscribe_for_anonymous": true
+      },
+      {
+        "name": "project-b",
+        "allow_subscribe_for_anonymous": true
+      }
+    ]
+  },
+  "log": {
+    "level": "info",
+    "file": "C:\\centrifugo\\logs\\centrifugo.log"
+  }
+}
