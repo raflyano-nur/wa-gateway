@@ -52,17 +52,79 @@ const API_KEY = process.env.API_KEY || "";
 const WEBHOOK_URL = process.env.WEBHOOK_URL || "";
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "";
 const MAX_BROADCAST_TARGETS = Number(process.env.MAX_BROADCAST_TARGETS || 200);
-const SCHEDULER_INTERVAL_MS = Number(process.env.SCHEDULER_INTERVAL_MS || 15000);
+const SCHEDULER_INTERVAL_MS = Number(
+  process.env.SCHEDULER_INTERVAL_MS || 15000,
+);
 const MAX_ACCOUNTS = Math.max(1, Number(process.env.MAX_ACCOUNTS || 3));
-const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
+const ADMIN_WEBSITE_URL = (process.env.WA_WEBSITE_URL || PUBLIC_BASE_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
+const CENTRIFUGO_API_URL = (process.env.CENTRIFUGO_API_URL || "").trim();
+const CENTRIFUGO_API_KEY = (process.env.CENTRIFUGO_API_KEY || "").trim();
+const CENTRIFUGO_WS_URL = (process.env.CENTRIFUGO_WS_URL || "").trim();
+const CENTRIFUGO_CHANNEL = (
+  process.env.CENTRIFUGO_CHANNEL || "wa-gateway:admin"
+).trim();
+
+function normalizeWebsiteUrl(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    return `${url.protocol}//${url.host}${url.pathname}`.replace(/\/+$/, "");
+  } catch {
+    return "";
+  }
+}
+
+async function publishRealtimeEvent(event, payload) {
+  if (!CENTRIFUGO_API_URL || !CENTRIFUGO_API_KEY) {
+    return;
+  }
+
+  try {
+    await fetch(CENTRIFUGO_API_URL, {
+      method: "POST",
+      headers: {
+        "X-API-Key": CENTRIFUGO_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channel: CENTRIFUGO_CHANNEL,
+        data: { event, payload },
+      }),
+    });
+  } catch (error) {
+    logger?.warn("Gagal publish event realtime ke Centrifugo", {
+      event,
+      error: error.message,
+    });
+  }
+}
 
 // Paket langganan user: menentukan berapa akun WAG & berapa pesan/hari yang
 // boleh dikirim tiap user. Upgrade antar paket dikonfirmasi manual oleh admin
 // (tidak ada payment gateway) — lihat /api/my/upgrade-request & tab Pengguna.
 const PLAN_DEFS = {
-  free: { label: "Free", maxAccounts: 1, dailyMessageLimit: 10, durationDays: null },
-  pro: { label: "Pro", maxAccounts: 3, dailyMessageLimit: 200, durationDays: 30 },
-  max: { label: "Max", maxAccounts: 10, dailyMessageLimit: 1000, durationDays: 30 },
+  free: {
+    label: "Free",
+    maxAccounts: 1,
+    dailyMessageLimit: 10,
+    durationDays: null,
+  },
+  pro: {
+    label: "Pro",
+    maxAccounts: 3,
+    dailyMessageLimit: 200,
+    durationDays: 30,
+  },
+  max: {
+    label: "Max",
+    maxAccounts: 10,
+    dailyMessageLimit: 1000,
+    durationDays: 30,
+  },
 };
 const DEFAULT_USER_MAX_ACCOUNTS = PLAN_DEFS.free.maxAccounts;
 
@@ -71,69 +133,199 @@ const SETTINGS_GROUPS = [
     id: "server",
     label: "Server",
     fields: [
-      { key: "PORT", label: "Port", type: "number", help: "Port HTTP server. Perlu restart untuk berubah." },
-      { key: "HOST", label: "Host", type: "text", help: "Interface bind, contoh 0.0.0.0 untuk semua interface." },
-      { key: "NODE_ENV", label: "Environment", type: "select", options: ["development", "production"], help: "Mode aplikasi." },
-      { key: "APP_NAME", label: "Nama Aplikasi", type: "text", help: "Ditampilkan di judul halaman & dashboard." },
-      { key: "APP_VERSION", label: "Versi Aplikasi", type: "text", help: "Ditampilkan di sidebar & /api/status. Kosongkan untuk memakai versi dari package.json." },
-      { key: "TZ", label: "Timezone", type: "text", help: "Contoh: Asia/Jakarta." },
-      { key: "PUBLIC_BASE_URL", label: "URL Publik", type: "text", help: "Domain publik gateway ini, contoh: https://wa.domainanda.com (tanpa slash di akhir). Dipakai untuk kode Embed Widget QR supaya tidak memakai localhost. Kosongkan untuk otomatis memakai alamat yang sedang dipakai membuka dashboard ini." },
+      {
+        key: "PORT",
+        label: "Port",
+        type: "number",
+        help: "Port HTTP server. Perlu restart untuk berubah.",
+      },
+      {
+        key: "HOST",
+        label: "Host",
+        type: "text",
+        help: "Interface bind, contoh 0.0.0.0 untuk semua interface.",
+      },
+      {
+        key: "NODE_ENV",
+        label: "Environment",
+        type: "select",
+        options: ["development", "production"],
+        help: "Mode aplikasi.",
+      },
+      {
+        key: "APP_NAME",
+        label: "Nama Aplikasi",
+        type: "text",
+        help: "Ditampilkan di judul halaman & dashboard.",
+      },
+      {
+        key: "APP_VERSION",
+        label: "Versi Aplikasi",
+        type: "text",
+        help: "Ditampilkan di sidebar & /api/status. Kosongkan untuk memakai versi dari package.json.",
+      },
+      {
+        key: "TZ",
+        label: "Timezone",
+        type: "text",
+        help: "Contoh: Asia/Jakarta.",
+      },
+      {
+        key: "PUBLIC_BASE_URL",
+        label: "URL Publik",
+        type: "text",
+        help: "Domain publik gateway ini, contoh: https://wa.domainanda.com (tanpa slash di akhir). Dipakai untuk kode Embed Widget QR supaya tidak memakai localhost. Kosongkan untuk otomatis memakai alamat yang sedang dipakai membuka dashboard ini.",
+      },
+      {
+        key: "WA_WEBSITE_URL",
+        label: "URL Website WhatsApp",
+        type: "text",
+        help: "URL yang dipakai saat login admin. Jika kosong, sistem memakai URL Publik.",
+      },
     ],
   },
   {
     id: "whatsapp",
     label: "WhatsApp",
     fields: [
-      { key: "WA_AUTH_DIR", label: "Folder Sesi Auth", type: "text", help: "Lokasi penyimpanan sesi WhatsApp (folder induk, tiap akun dapat subfolder sendiri)." },
-      { key: "WA_SESSION_NAME", label: "Nama Sesi", type: "text", help: "Label sesi (opsional, untuk referensi)." },
-      { key: "MAX_ACCOUNTS", label: "Batas Jumlah Akun WhatsApp", type: "number", help: "Maksimum akun WhatsApp yang bisa terhubung bersamaan di gateway ini." },
+      {
+        key: "WA_AUTH_DIR",
+        label: "Folder Sesi Auth",
+        type: "text",
+        help: "Lokasi penyimpanan sesi WhatsApp (folder induk, tiap akun dapat subfolder sendiri).",
+      },
+      {
+        key: "WA_SESSION_NAME",
+        label: "Nama Sesi",
+        type: "text",
+        help: "Label sesi (opsional, untuk referensi).",
+      },
+      {
+        key: "MAX_ACCOUNTS",
+        label: "Batas Jumlah Akun WhatsApp",
+        type: "number",
+        help: "Maksimum akun WhatsApp yang bisa terhubung bersamaan di gateway ini.",
+      },
     ],
   },
   {
     id: "storage",
     label: "Lokasi Penyimpanan",
     fields: [
-      { key: "LOG_DIR", label: "Folder Log", type: "text", help: "Lokasi file logs/*.log. Arahkan ke folder di volume persisten kalau deploy di platform dengan filesystem sementara (mis. Railway)." },
-      { key: "DATA_DIR", label: "Folder Data", type: "text", help: "Lokasi riwayat pesan & pesan terjadwal (data/*.json). Arahkan ke folder di volume persisten kalau deploy di platform dengan filesystem sementara." },
+      {
+        key: "LOG_DIR",
+        label: "Folder Log",
+        type: "text",
+        help: "Lokasi file logs/*.log. Arahkan ke folder di volume persisten kalau deploy di platform dengan filesystem sementara (mis. Railway).",
+      },
+      {
+        key: "DATA_DIR",
+        label: "Folder Data",
+        type: "text",
+        help: "Lokasi riwayat pesan & pesan terjadwal (data/*.json). Arahkan ke folder di volume persisten kalau deploy di platform dengan filesystem sementara.",
+      },
     ],
   },
   {
     id: "security",
     label: "Keamanan",
     fields: [
-      { key: "API_KEY", label: "API Key", type: "password", help: "Wajib disertakan lewat header x-api-key saat memanggil /api/*. Kosongkan untuk menonaktifkan proteksi (tidak disarankan)." },
-      { key: "LOGIN_MAX_ATTEMPTS", label: "Maks Percobaan Login Gagal", type: "number", help: "Berapa kali salah password sebelum login dikunci sementara. Default 5." },
-      { key: "LOGIN_LOCKOUT_MS", label: "Durasi Kunci Login (ms)", type: "number", help: "Lama login dikunci setelah melewati batas percobaan. Default 900000 (15 menit)." },
-      { key: "LOGIN_ATTEMPT_WINDOW_MS", label: "Jendela Hitung Percobaan (ms)", type: "number", help: "Rentang waktu penghitungan percobaan gagal. Kalau tidak ada percobaan gagal baru selama periode ini, hitungannya di-reset. Default 900000 (15 menit)." },
+      {
+        key: "API_KEY",
+        label: "API Key",
+        type: "password",
+        help: "Wajib disertakan lewat header x-api-key saat memanggil /api/*. Kosongkan untuk menonaktifkan proteksi (tidak disarankan).",
+      },
+      {
+        key: "LOGIN_MAX_ATTEMPTS",
+        label: "Maks Percobaan Login Gagal",
+        type: "number",
+        help: "Berapa kali salah password sebelum login dikunci sementara. Default 5.",
+      },
+      {
+        key: "LOGIN_LOCKOUT_MS",
+        label: "Durasi Kunci Login (ms)",
+        type: "number",
+        help: "Lama login dikunci setelah melewati batas percobaan. Default 900000 (15 menit).",
+      },
+      {
+        key: "LOGIN_ATTEMPT_WINDOW_MS",
+        label: "Jendela Hitung Percobaan (ms)",
+        type: "number",
+        help: "Rentang waktu penghitungan percobaan gagal. Kalau tidak ada percobaan gagal baru selama periode ini, hitungannya di-reset. Default 900000 (15 menit).",
+      },
     ],
   },
   {
     id: "plans",
     label: "Paket Langganan",
     fields: [
-      { key: "PLAN_EXPIRY_WARNING_DAYS", label: "Peringatan Sebelum Kadaluarsa (hari)", type: "number", help: "Berapa hari sebelum paket berbayar habis, user diingatkan lewat WhatsApp supaya sempat perpanjang. Default 3." },
+      {
+        key: "PLAN_EXPIRY_WARNING_DAYS",
+        label: "Peringatan Sebelum Kadaluarsa (hari)",
+        type: "number",
+        help: "Berapa hari sebelum paket berbayar habis, user diingatkan lewat WhatsApp supaya sempat perpanjang. Default 3.",
+      },
     ],
   },
   {
     id: "database",
     label: "Database PostgreSQL",
     fields: [
-      { key: "HOST_NAME", label: "Host Database", type: "text", help: "⚠️ Salah isi = server gagal start & dashboard tidak bisa dibuka. Perbaikannya harus lewat edit file .env langsung di server." },
-      { key: "PORT_DB", label: "Port Database", type: "number", help: "Default PostgreSQL: 5432." },
+      {
+        key: "HOST_NAME",
+        label: "Host Database",
+        type: "text",
+        help: "⚠️ Salah isi = server gagal start & dashboard tidak bisa dibuka. Perbaikannya harus lewat edit file .env langsung di server.",
+      },
+      {
+        key: "PORT_DB",
+        label: "Port Database",
+        type: "number",
+        help: "Default PostgreSQL: 5432.",
+      },
       { key: "USERNAME_DB", label: "Username Database", type: "text" },
       { key: "PASSWORD_DB", label: "Password Database", type: "password" },
-      { key: "NAME_DB", label: "Nama Database", type: "text", help: "Database harus sudah dibuat lebih dulu di PostgreSQL. Tabelnya dibuat otomatis saat server start." },
+      {
+        key: "NAME_DB",
+        label: "Nama Database",
+        type: "text",
+        help: "Database harus sudah dibuat lebih dulu di PostgreSQL. Tabelnya dibuat otomatis saat server start.",
+      },
     ],
   },
   {
     id: "messaging",
     label: "Pengiriman Pesan & Upload",
     fields: [
-      { key: "REQUEST_BODY_LIMIT", label: "Batas Ukuran Body", type: "text", help: "Contoh: 256kb." },
-      { key: "MAX_FILE_SIZE_BYTES", label: "Batas Ukuran File (bytes)", type: "number", help: "Contoh: 16777216 (16MB)." },
-      { key: "MESSAGE_TIMEOUT_MS", label: "Timeout Kirim Pesan (ms)", type: "number" },
-      { key: "LOGOUT_TIMEOUT_MS", label: "Timeout Logout (ms)", type: "number" },
-      { key: "SEND_CONCURRENCY", label: "Konkurensi Pengiriman", type: "number", help: "Jumlah pesan yang diproses bersamaan." },
+      {
+        key: "REQUEST_BODY_LIMIT",
+        label: "Batas Ukuran Body",
+        type: "text",
+        help: "Contoh: 256kb.",
+      },
+      {
+        key: "MAX_FILE_SIZE_BYTES",
+        label: "Batas Ukuran File (bytes)",
+        type: "number",
+        help: "Contoh: 16777216 (16MB).",
+      },
+      {
+        key: "MESSAGE_TIMEOUT_MS",
+        label: "Timeout Kirim Pesan (ms)",
+        type: "number",
+      },
+      {
+        key: "LOGOUT_TIMEOUT_MS",
+        label: "Timeout Logout (ms)",
+        type: "number",
+      },
+      {
+        key: "SEND_CONCURRENCY",
+        label: "Konkurensi Pengiriman",
+        type: "number",
+        help: "Jumlah pesan yang diproses bersamaan.",
+      },
       { key: "MAX_QUEUE_SIZE", label: "Kapasitas Antrean", type: "number" },
     ],
   },
@@ -141,33 +333,73 @@ const SETTINGS_GROUPS = [
     id: "reconnect",
     label: "Reconnect WhatsApp",
     fields: [
-      { key: "RECONNECT_BASE_DELAY_MS", label: "Delay Awal (ms)", type: "number" },
-      { key: "RECONNECT_MAX_DELAY_MS", label: "Delay Maksimum (ms)", type: "number" },
+      {
+        key: "RECONNECT_BASE_DELAY_MS",
+        label: "Delay Awal (ms)",
+        type: "number",
+      },
+      {
+        key: "RECONNECT_MAX_DELAY_MS",
+        label: "Delay Maksimum (ms)",
+        type: "number",
+      },
     ],
   },
   {
     id: "dashboard",
     label: "Dashboard & Logging",
     fields: [
-      { key: "STATUS_POLL_INTERVAL_MS", label: "Interval Polling Status (ms)", type: "number" },
-      { key: "LOG_STATUS_CHECKS", label: "Log Setiap Cek Status", type: "select", options: ["true", "false"] },
-      { key: "LOG_LEVEL", label: "Level Log", type: "select", options: ["error", "warn", "info", "http", "debug"] },
+      {
+        key: "STATUS_POLL_INTERVAL_MS",
+        label: "Interval Polling Status (ms)",
+        type: "number",
+      },
+      {
+        key: "LOG_STATUS_CHECKS",
+        label: "Log Setiap Cek Status",
+        type: "select",
+        options: ["true", "false"],
+      },
+      {
+        key: "LOG_LEVEL",
+        label: "Level Log",
+        type: "select",
+        options: ["error", "warn", "info", "http", "debug"],
+      },
     ],
   },
   {
     id: "webhook",
     label: "Webhook Pesan Masuk",
     fields: [
-      { key: "WEBHOOK_URL", label: "Webhook URL", type: "text", help: "URL tujuan POST setiap ada pesan WhatsApp masuk. Kosongkan untuk menonaktifkan." },
-      { key: "WEBHOOK_SECRET", label: "Webhook Secret", type: "password", help: "Dikirim sebagai header x-webhook-secret, untuk verifikasi di sisi penerima (opsional)." },
+      {
+        key: "WEBHOOK_URL",
+        label: "Webhook URL",
+        type: "text",
+        help: "URL tujuan POST setiap ada pesan WhatsApp masuk. Kosongkan untuk menonaktifkan.",
+      },
+      {
+        key: "WEBHOOK_SECRET",
+        label: "Webhook Secret",
+        type: "password",
+        help: "Dikirim sebagai header x-webhook-secret, untuk verifikasi di sisi penerima (opsional).",
+      },
     ],
   },
   {
     id: "broadcast",
     label: "Broadcast & Terjadwal",
     fields: [
-      { key: "MAX_BROADCAST_TARGETS", label: "Maks Nomor per Broadcast", type: "number" },
-      { key: "SCHEDULER_INTERVAL_MS", label: "Interval Cek Pesan Terjadwal (ms)", type: "number" },
+      {
+        key: "MAX_BROADCAST_TARGETS",
+        label: "Maks Nomor per Broadcast",
+        type: "number",
+      },
+      {
+        key: "SCHEDULER_INTERVAL_MS",
+        label: "Interval Cek Pesan Terjadwal (ms)",
+        type: "number",
+      },
     ],
   },
 ];
@@ -268,7 +500,8 @@ function readLogTail(type, limit) {
         message: parsed.message || line,
         meta: Object.fromEntries(
           Object.entries(parsed).filter(
-            ([key]) => !["timestamp", "level", "message", "service"].includes(key),
+            ([key]) =>
+              !["timestamp", "level", "message", "service"].includes(key),
           ),
         ),
       };
@@ -288,10 +521,10 @@ function buildRestartEnv() {
 
 const IS_UNDER_PROCESS_MANAGER = Boolean(
   process.env.pm_id ||
-    process.env.NODEMON ||
-    process.env.RAILWAY_ENVIRONMENT ||
-    process.env.RAILWAY_PROJECT_ID ||
-    process.env.DYNO, // Heroku-style dyno managers, same self-restart hazard
+  process.env.NODEMON ||
+  process.env.RAILWAY_ENVIRONMENT ||
+  process.env.RAILWAY_PROJECT_ID ||
+  process.env.DYNO, // Heroku-style dyno managers, same self-restart hazard
 );
 
 function scheduleRestart(reason) {
@@ -332,10 +565,12 @@ const HISTORY_FILE = path.join(DATA_DIR, "message-history.json");
 const SCHEDULE_FILE = path.join(DATA_DIR, "scheduled-messages.json");
 const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
 const SCHEDULED_UPLOADS_DIR = path.join(DATA_DIR, "scheduled-uploads");
+const AUTO_REPLY_UPLOADS_DIR = path.join(DATA_DIR, "auto-reply-uploads");
 const MAX_HISTORY_ENTRIES = 500;
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(SCHEDULED_UPLOADS_DIR, { recursive: true });
+fs.mkdirSync(AUTO_REPLY_UPLOADS_DIR, { recursive: true });
 
 function readJsonFile(filePath, fallback) {
   try {
@@ -426,6 +661,22 @@ async function dbExec(sql) {
 }
 
 async function initSchema() {
+  // password_resets sempat dibuat dengan skema lama (kolom user_id) sebelum
+  // digeneralisasi ke subject_type/subject_id — drop dulu kalau skemanya
+  // masih yang lama supaya CREATE TABLE di bawah bisa bikin ulang dengan
+  // skema baru. Isinya cuma kode OTP sementara, aman dihapus.
+  await dbExec(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'password_resets' AND column_name = 'user_id'
+      ) THEN
+        DROP TABLE password_resets;
+      END IF;
+    END $$;
+  `);
+
   await dbExec(`
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
@@ -481,6 +732,7 @@ async function initSchema() {
       username TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
       password_salt TEXT NOT NULL,
+      phone TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -503,6 +755,21 @@ async function initSchema() {
       expiry_warning_sent_at TEXT,
       webhook_url TEXT,
       webhook_secret TEXT
+    );
+
+    -- Kode OTP reset password. subject_type/subject_id sama polanya dengan
+    -- web_sessions ('user' -> tabel users, 'admin' -> tabel admins). Cuma 1
+    -- baris aktif (used_at IS NULL) per subject pada satu waktu — permintaan
+    -- OTP baru menghapus yang lama (lihat requestPasswordReset).
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id TEXT PRIMARY KEY,
+      subject_type TEXT NOT NULL,
+      subject_id TEXT NOT NULL,
+      otp_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      used_at TEXT,
+      created_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS web_sessions (
@@ -587,32 +854,74 @@ async function initSchema() {
       created_at TEXT NOT NULL
     );
 
+    -- Jejak aktivitas admin (approve/reject akun, ubah paket, kelola admin,
+    -- simpan pengaturan, dst) — supaya ada rekam jejak siapa mengubah apa.
+    CREATE TABLE IF NOT EXISTS admin_audit_log (
+      seq SERIAL,
+      id TEXT PRIMARY KEY,
+      admin_id TEXT,
+      admin_username TEXT,
+      action TEXT NOT NULL,
+      details TEXT,
+      ip TEXT,
+      created_at TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_users_api_key_prefix ON users (api_key_prefix);
+    CREATE INDEX IF NOT EXISTS idx_password_resets_subject ON password_resets (subject_type, subject_id);
     CREATE INDEX IF NOT EXISTS idx_incoming_owner ON incoming_messages (owner_user_id, seq DESC);
     CREATE INDEX IF NOT EXISTS idx_incoming_session ON incoming_messages (session_id);
     CREATE INDEX IF NOT EXISTS idx_auto_replies_user ON auto_replies (user_id);
     CREATE INDEX IF NOT EXISTS idx_contacts_user ON contacts (user_id);
     CREATE INDEX IF NOT EXISTS idx_templates_user ON message_templates (user_id);
     CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_user ON webhook_deliveries (user_id, seq DESC);
+    CREATE INDEX IF NOT EXISTS idx_admin_audit_log_seq ON admin_audit_log (seq DESC);
   `);
 
-  await ensureColumn("users", "expiry_notice_sent_at", "expiry_notice_sent_at TEXT");
-  await ensureColumn("users", "expiry_warning_sent_at", "expiry_warning_sent_at TEXT");
+  await ensureColumn("admins", "phone", "phone TEXT");
+  await ensureColumn(
+    "users",
+    "expiry_notice_sent_at",
+    "expiry_notice_sent_at TEXT",
+  );
+  await ensureColumn(
+    "users",
+    "expiry_warning_sent_at",
+    "expiry_warning_sent_at TEXT",
+  );
   await ensureColumn("users", "webhook_url", "webhook_url TEXT");
   await ensureColumn("users", "webhook_secret", "webhook_secret TEXT");
   // Pesan terjadwal sekarang bisa dibuat user (dulu admin-only), jadi perlu
   // tahu pemiliknya supaya user cuma bisa lihat/batalkan miliknya sendiri.
-  await ensureColumn("scheduled_messages", "owner_user_id", "owner_user_id TEXT");
+  await ensureColumn(
+    "scheduled_messages",
+    "owner_user_id",
+    "owner_user_id TEXT",
+  );
 
   // Balas otomatis sekarang bisa dipunya admin juga (dulu user_id NOT NULL,
   // cuma user). Drop NOT NULL aman dijalankan berkali-kali — no-op kalau
   // constraint-nya sudah tidak ada.
-  await ensureColumn("auto_replies", "admin_scope", "admin_scope INTEGER NOT NULL DEFAULT 0");
+  await ensureColumn(
+    "auto_replies",
+    "admin_scope",
+    "admin_scope INTEGER NOT NULL DEFAULT 0",
+  );
   await dbExec("ALTER TABLE auto_replies ALTER COLUMN user_id DROP NOT NULL");
+
+  // Lampiran file opsional (gambar/dokumen) per rule balas otomatis.
+  await ensureColumn("auto_replies", "media_path", "media_path TEXT");
+  await ensureColumn("auto_replies", "media_mimetype", "media_mimetype TEXT");
+  await ensureColumn("auto_replies", "media_filename", "media_filename TEXT");
+  // Toggle "kabari saya" dicoba lalu dibatalkan — kolomnya dibuang lagi
+  // kalau sempat sudah dibuat (aman dijalankan berkali-kali).
+  await dbExec("ALTER TABLE auto_replies DROP COLUMN IF EXISTS notify_owner");
 
   // Index ini HARUS dibuat setelah ensureColumn di atas — di database lama
   // kolomnya belum ada saat blok CREATE TABLE di atas dijalankan.
-  await dbExec("CREATE INDEX IF NOT EXISTS idx_scheduled_owner ON scheduled_messages (owner_user_id)");
+  await dbExec(
+    "CREATE INDEX IF NOT EXISTS idx_scheduled_owner ON scheduled_messages (owner_user_id)",
+  );
 }
 
 // Migrasi kolom baru ke tabel yang sudah berjalan di production (data user
@@ -681,50 +990,59 @@ async function migrateLegacyJsonFile(jsonFile, countSql, migrateEntry) {
 }
 
 async function migrateLegacyJsonFiles() {
-  await migrateLegacyJsonFile(SESSIONS_FILE, "SELECT COUNT(*) AS c FROM sessions", (entry) =>
-    dbRun(insertSessionSql, {
-      id: entry.id,
-      name: entry.name,
-      authDir: entry.authDir,
-      createdAt: entry.createdAt || new Date().toISOString(),
-    }),
+  await migrateLegacyJsonFile(
+    SESSIONS_FILE,
+    "SELECT COUNT(*) AS c FROM sessions",
+    (entry) =>
+      dbRun(insertSessionSql, {
+        id: entry.id,
+        name: entry.name,
+        authDir: entry.authDir,
+        createdAt: entry.createdAt || new Date().toISOString(),
+      }),
   );
 
-  await migrateLegacyJsonFile(HISTORY_FILE, "SELECT COUNT(*) AS c FROM message_history", (entry) =>
-    dbRun(insertHistorySql, {
-      id: entry.id || uuidv4(),
-      timestamp: entry.timestamp || new Date().toISOString(),
-      source: entry.source ?? null,
-      sessionId: entry.sessionId ?? null,
-      recipient: entry.to ?? null,
-      type: entry.type ?? null,
-      message: entry.message ?? null,
-      status: entry.status ?? null,
-      messageId: entry.messageId ?? null,
-      error: entry.error ?? null,
-      requestId: entry.requestId ?? null,
-    }),
+  await migrateLegacyJsonFile(
+    HISTORY_FILE,
+    "SELECT COUNT(*) AS c FROM message_history",
+    (entry) =>
+      dbRun(insertHistorySql, {
+        id: entry.id || uuidv4(),
+        timestamp: entry.timestamp || new Date().toISOString(),
+        source: entry.source ?? null,
+        sessionId: entry.sessionId ?? null,
+        recipient: entry.to ?? null,
+        type: entry.type ?? null,
+        message: entry.message ?? null,
+        status: entry.status ?? null,
+        messageId: entry.messageId ?? null,
+        error: entry.error ?? null,
+        requestId: entry.requestId ?? null,
+      }),
   );
 
-  await migrateLegacyJsonFile(SCHEDULE_FILE, "SELECT COUNT(*) AS c FROM scheduled_messages", (entry) =>
-    dbRun(insertScheduledSql, {
-      id: entry.id,
-      sessionId: entry.sessionId ?? null,
-      jid: entry.jid ?? null,
-      recipient: entry.to ?? null,
-      message: entry.message ?? null,
-      filePath: entry.file?.path ?? null,
-      fileMimetype: entry.file?.mimetype ?? null,
-      fileName: entry.file?.fileName ?? null,
-      hasFile: entry.hasFile ? 1 : 0,
-      sendAt: entry.sendAt ?? null,
-      status: entry.status ?? "pending",
-      createdAt: entry.createdAt || new Date().toISOString(),
-      sentAt: entry.sentAt ?? null,
-      messageId: entry.messageId ?? null,
-      error: entry.error ?? null,
-      cancelledAt: entry.cancelledAt ?? null,
-    }),
+  await migrateLegacyJsonFile(
+    SCHEDULE_FILE,
+    "SELECT COUNT(*) AS c FROM scheduled_messages",
+    (entry) =>
+      dbRun(insertScheduledSql, {
+        id: entry.id,
+        sessionId: entry.sessionId ?? null,
+        jid: entry.jid ?? null,
+        recipient: entry.to ?? null,
+        message: entry.message ?? null,
+        filePath: entry.file?.path ?? null,
+        fileMimetype: entry.file?.mimetype ?? null,
+        fileName: entry.file?.fileName ?? null,
+        hasFile: entry.hasFile ? 1 : 0,
+        sendAt: entry.sendAt ?? null,
+        status: entry.status ?? "pending",
+        createdAt: entry.createdAt || new Date().toISOString(),
+        sentAt: entry.sentAt ?? null,
+        messageId: entry.messageId ?? null,
+        error: entry.error ?? null,
+        cancelledAt: entry.cancelledAt ?? null,
+      }),
   );
 }
 
@@ -745,6 +1063,11 @@ async function recordHistory(entry) {
     });
 
     await dbRun(trimHistorySql, [MAX_HISTORY_ENTRIES]);
+    void publishRealtimeEvent("history.updated", {
+      sessionId: entry.sessionId ?? null,
+      status: entry.status ?? null,
+      source: entry.source ?? null,
+    });
   } catch (error) {
     // recordHistory dipanggil fire-and-forget di banyak tempat (broadcast,
     // scheduler) — kegagalan simpan riwayat tidak boleh menjatuhkan proses
@@ -770,10 +1093,59 @@ function rowToHistoryEntry(row) {
 }
 
 async function listHistory(limit) {
-  const rows = await dbAll("SELECT * FROM message_history ORDER BY seq DESC LIMIT ?", [limit]);
+  const rows = await dbAll(
+    "SELECT * FROM message_history ORDER BY seq DESC LIMIT ?",
+    [limit],
+  );
   const total = (await dbGet("SELECT COUNT(*) AS c FROM message_history")).c;
 
   return { entries: rows.map(rowToHistoryEntry), total };
+}
+
+// Kelompokkan message_history per hari (lokal, bukan UTC — lihat penjelasan
+// di /api/my/analytics) untuk grafik statistik pengiriman. `scopeSql` &
+// `scopeParams` opsional dipakai buat batasi ke session_id tertentu (portal
+// user); kosongkan untuk hitung SEMUA riwayat (dashboard admin).
+async function buildDailyMessageStats(days, scopeSql, scopeParams) {
+  const since = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000);
+  since.setHours(0, 0, 0, 0);
+  const sinceIso = since.toISOString();
+
+  const groupTz = process.env.TZ || "UTC";
+  const dayExpr = `to_char(timestamp::timestamptz AT TIME ZONE '${groupTz.replace(/'/g, "''")}', 'YYYY-MM-DD')`;
+
+  const rows = await dbAll(
+    `SELECT ${dayExpr} AS day, status, COUNT(*) AS c
+     FROM message_history
+     WHERE timestamp >= ? ${scopeSql || ""}
+     GROUP BY 1, status`,
+    [sinceIso, ...(scopeParams || [])],
+  );
+
+  const localDayKey = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  const dayMap = new Map();
+  for (let i = 0; i < days; i++) {
+    const d = new Date(since.getTime() + i * 24 * 60 * 60 * 1000);
+    const key = localDayKey(d);
+    dayMap.set(key, { date: key, sent: 0, failed: 0 });
+  }
+
+  rows.forEach((row) => {
+    const entry = dayMap.get(row.day);
+    if (!entry) return;
+    if (row.status === "sent") entry.sent += Number(row.c);
+    else entry.failed += Number(row.c);
+  });
+
+  const daily = [...dayMap.values()];
+  const totals = daily.reduce(
+    (acc, d) => ({ sent: acc.sent + d.sent, failed: acc.failed + d.failed }),
+    { sent: 0, failed: 0 },
+  );
+
+  return { daily, totals };
 }
 
 function rowToJob(row) {
@@ -785,7 +1157,11 @@ function rowToJob(row) {
     to: row.recipient,
     message: row.message,
     file: row.filePath
-      ? { path: row.filePath, mimetype: row.fileMimetype, fileName: row.fileName }
+      ? {
+          path: row.filePath,
+          mimetype: row.fileMimetype,
+          fileName: row.fileName,
+        }
       : null,
     hasFile: Boolean(row.hasFile),
     sendAt: row.sendAt,
@@ -820,12 +1196,16 @@ async function insertScheduledJob(job) {
 }
 
 async function listScheduledJobs() {
-  const rows = await dbAll("SELECT * FROM scheduled_messages ORDER BY created_at DESC");
+  const rows = await dbAll(
+    "SELECT * FROM scheduled_messages ORDER BY created_at DESC",
+  );
   return rows.map(rowToJob);
 }
 
 async function findScheduledJob(id) {
-  const row = await dbGet("SELECT * FROM scheduled_messages WHERE id = ?", [id]);
+  const row = await dbGet("SELECT * FROM scheduled_messages WHERE id = ?", [
+    id,
+  ]);
   return row ? rowToJob(row) : null;
 }
 
@@ -838,7 +1218,9 @@ async function listDuePendingJobs(now) {
 }
 
 async function updateScheduledJob(id, patch) {
-  const current = await dbGet("SELECT * FROM scheduled_messages WHERE id = ?", [id]);
+  const current = await dbGet("SELECT * FROM scheduled_messages WHERE id = ?", [
+    id,
+  ]);
   if (!current) {
     return null;
   }
@@ -880,14 +1262,25 @@ function verifyPassword(password, salt, expectedHash) {
 // menebak apakah suatu username ada atau tidak.
 // ---------------------------------------------------------------------------
 
-const LOGIN_MAX_ATTEMPTS = Math.max(1, Number(process.env.LOGIN_MAX_ATTEMPTS || 5));
-const LOGIN_LOCKOUT_MS = Math.max(1000, Number(process.env.LOGIN_LOCKOUT_MS || 15 * 60 * 1000));
-const LOGIN_ATTEMPT_WINDOW_MS = Math.max(1000, Number(process.env.LOGIN_ATTEMPT_WINDOW_MS || 15 * 60 * 1000));
+const LOGIN_MAX_ATTEMPTS = Math.max(
+  1,
+  Number(process.env.LOGIN_MAX_ATTEMPTS || 5),
+);
+const LOGIN_LOCKOUT_MS = Math.max(
+  1000,
+  Number(process.env.LOGIN_LOCKOUT_MS || 15 * 60 * 1000),
+);
+const LOGIN_ATTEMPT_WINDOW_MS = Math.max(
+  1000,
+  Number(process.env.LOGIN_ATTEMPT_WINDOW_MS || 15 * 60 * 1000),
+);
 
 const loginAttempts = new Map();
 
 function loginAttemptKey(scope, username, ip) {
-  return `${scope}:${String(username || "").trim().toLowerCase()}:${ip}`;
+  return `${scope}:${String(username || "")
+    .trim()
+    .toLowerCase()}:${ip}`;
 }
 
 // Dipanggil SEBELUM query database. Mengembalikan sisa detik lockout kalau
@@ -904,7 +1297,10 @@ function getLoginLockoutSeconds(key) {
 
   // Lockout sudah lewat, atau jendela penghitungan sudah kedaluwarsa —
   // reset supaya user sah tidak kena getahnya selamanya.
-  if ((entry.lockedUntil && entry.lockedUntil <= Date.now()) || Date.now() - entry.firstAt > LOGIN_ATTEMPT_WINDOW_MS) {
+  if (
+    (entry.lockedUntil && entry.lockedUntil <= Date.now()) ||
+    Date.now() - entry.firstAt > LOGIN_ATTEMPT_WINDOW_MS
+  ) {
     loginAttempts.delete(key);
   }
 
@@ -944,15 +1340,32 @@ const loginAttemptSweeper = setInterval(() => {
 loginAttemptSweeper.unref();
 
 function rowToAdmin(row) {
-  return { id: row.id, username: row.username, createdAt: row.createdAt };
+  return {
+    id: row.id,
+    username: row.username,
+    phone: row.phone || null,
+    createdAt: row.createdAt,
+  };
 }
 
 async function listAdmins() {
-  const rows = await dbAll("SELECT id, username, created_at FROM admins ORDER BY created_at ASC");
+  const rows = await dbAll(
+    "SELECT id, username, phone, created_at FROM admins ORDER BY created_at ASC",
+  );
   return rows.map(rowToAdmin);
 }
 
-async function createAdmin(username, password) {
+async function findAdminByUsername(username) {
+  return dbGet("SELECT * FROM admins WHERE username = ?", [
+    String(username || "").trim(),
+  ]);
+}
+
+async function findAdminById(id) {
+  return dbGet("SELECT * FROM admins WHERE id = ?", [id]);
+}
+
+async function createAdmin(username, password, phone) {
   const trimmedUsername = String(username || "").trim();
   if (trimmedUsername.length < 3) {
     throw new Error("Username admin minimal 3 karakter");
@@ -961,7 +1374,18 @@ async function createAdmin(username, password) {
     throw new Error("Password admin minimal 6 karakter");
   }
 
-  const existing = await dbGet("SELECT id FROM admins WHERE username = ?", [trimmedUsername]);
+  // Nomor WA opsional (admin lama/bootstrap boleh kosong dulu), tapi kalau
+  // diisi harus valid — dipakai satu-satunya jalur pengiriman OTP lupa
+  // password (lihat requestPasswordReset), jadi admin tanpa nomor tidak bisa
+  // pakai fitur itu sampai nomornya dilengkapi lewat panel Kelola Admin.
+  const trimmedPhone = String(phone || "").replace(/[^\d]/g, "");
+  if (trimmedPhone && trimmedPhone.length < 8) {
+    throw new Error("Nomor HP tidak valid");
+  }
+
+  const existing = await dbGet("SELECT id FROM admins WHERE username = ?", [
+    trimmedUsername,
+  ]);
   if (existing) {
     throw new Error(`Username '${trimmedUsername}' sudah dipakai`);
   }
@@ -972,11 +1396,12 @@ async function createAdmin(username, password) {
     username: trimmedUsername,
     passwordHash: hash,
     passwordSalt: salt,
+    phone: trimmedPhone || null,
     createdAt: new Date().toISOString(),
   };
 
   await dbRun(
-    "INSERT INTO admins (id, username, password_hash, password_salt, created_at) VALUES (@id, @username, @passwordHash, @passwordSalt, @createdAt)",
+    "INSERT INTO admins (id, username, password_hash, password_salt, phone, created_at) VALUES (@id, @username, @passwordHash, @passwordSalt, @phone, @createdAt)",
     admin,
   );
 
@@ -994,11 +1419,24 @@ async function updateAdminPassword(id, password) {
   }
 
   const { salt, hash } = hashPassword(password);
-  await dbRun("UPDATE admins SET password_hash = ?, password_salt = ? WHERE id = ?", [
-    hash,
-    salt,
-    id,
-  ]);
+  await dbRun(
+    "UPDATE admins SET password_hash = ?, password_salt = ? WHERE id = ?",
+    [hash, salt, id],
+  );
+}
+
+async function updateAdminPhone(id, phone) {
+  const trimmedPhone = String(phone || "").replace(/[^\d]/g, "");
+  if (trimmedPhone.length < 8) {
+    throw new Error("Nomor HP tidak valid");
+  }
+
+  const existing = await dbGet("SELECT id FROM admins WHERE id = ?", [id]);
+  if (!existing) {
+    throw new Error("Admin tidak ditemukan");
+  }
+
+  await dbRun("UPDATE admins SET phone = ? WHERE id = ?", [trimmedPhone, id]);
 }
 
 async function deleteAdmin(id) {
@@ -1006,6 +1444,84 @@ async function deleteAdmin(id) {
   if (result.changes === 0) {
     throw new Error("Admin tidak ditemukan");
   }
+}
+
+// ---------------------------------------------------------------------------
+// Audit log aktivitas admin — dicatat best-effort (kegagalan insert log TIDAK
+// boleh menggagalkan aksi yang sedang dilakukan admin, cuma ditulis ke logger
+// biasa) supaya fitur audit tidak jadi titik kegagalan baru.
+// ---------------------------------------------------------------------------
+
+// req.admin diisi requireAdminSession, tapi beberapa route (mis. /api/admins,
+// dijaga API key global bukan sesi) tidak lewat middleware itu — di situ kita
+// tetap coba baca cookie wa_admin_sid langsung (kalau ada, browser admin yang
+// sama biasanya sudah login) supaya pelakunya tetap tercatat kalau bisa.
+async function getActingAdmin(req) {
+  if (req.admin?.id) {
+    const admin = await findAdminById(req.admin.id);
+    if (admin) {
+      return { id: admin.id, username: admin.username };
+    }
+  }
+
+  const cookies = parseCookies(req);
+  const webSession = cookies.wa_admin_sid
+    ? await findWebSession(cookies.wa_admin_sid, "admin")
+    : null;
+  if (webSession) {
+    const admin = await findAdminById(webSession.subjectId);
+    if (admin) {
+      return { id: admin.id, username: admin.username };
+    }
+  }
+
+  return null;
+}
+
+// actorOverride: pakai kalau pelakunya sudah diketahui langsung (mis. saat
+// login, sebelum cookie sesi ada) — kalau tidak diisi, dicoba resolve dari
+// req lewat getActingAdmin.
+async function logAdminActivity(req, action, details, actorOverride) {
+  try {
+    const actor = actorOverride || (await getActingAdmin(req));
+    await dbRun(
+      "INSERT INTO admin_audit_log (id, admin_id, admin_username, action, details, ip, created_at) VALUES (@id, @adminId, @adminUsername, @action, @details, @ip, @createdAt)",
+      {
+        id: uuidv4(),
+        adminId: actor?.id || null,
+        adminUsername: actor?.username || null,
+        action,
+        details: details ? JSON.stringify(details) : null,
+        ip: getClientIp(req),
+        createdAt: new Date().toISOString(),
+      },
+    );
+  } catch (error) {
+    logger.warn("Gagal mencatat audit log admin", {
+      action,
+      error: error.message,
+    });
+  }
+}
+
+function rowToAuditLogEntry(row) {
+  let details = null;
+  if (row.details) {
+    try {
+      details = JSON.parse(row.details);
+    } catch {
+      details = row.details;
+    }
+  }
+  return {
+    id: row.id,
+    adminId: row.adminId || null,
+    adminUsername: row.adminUsername || "(tidak diketahui)",
+    action: row.action,
+    details,
+    ip: row.ip || null,
+    createdAt: row.createdAt,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1020,7 +1536,9 @@ function rowToUser(row) {
   // Pengguna). Selama masih kadaluarsa, kirim pesan diblokir total (limit 0)
   // di sisi enforcement (bukan cuma ngikut kuota Free) — lihat pengecekan
   // req.user.planExpired di route pengiriman & permintaan akun WAG baru.
-  const planExpired = Boolean(row.planExpiresAt) && new Date(row.planExpiresAt).getTime() <= Date.now();
+  const planExpired =
+    Boolean(row.planExpiresAt) &&
+    new Date(row.planExpiresAt).getTime() <= Date.now();
   return {
     id: row.id,
     username: row.username,
@@ -1052,7 +1570,9 @@ async function createUser(username, password, phone) {
     throw new Error("Nomor HP tidak valid");
   }
 
-  const existing = await dbGet("SELECT id FROM users WHERE username = ?", [trimmedUsername]);
+  const existing = await dbGet("SELECT id FROM users WHERE username = ?", [
+    trimmedUsername,
+  ]);
   if (existing) {
     throw new Error(`Username '${trimmedUsername}' sudah dipakai`);
   }
@@ -1060,7 +1580,9 @@ async function createUser(username, password, phone) {
   // 1 nomor HP cuma boleh dipakai 1 akun — nomor ini juga jadi satu-satunya
   // jalur pengiriman API key (lihat generateApiKeyForUser), jadi harus unik
   // supaya key tidak bisa "nyasar" ke akun lain yang kebetulan pakai nomor sama.
-  const existingPhone = await dbGet("SELECT id FROM users WHERE phone = ?", [trimmedPhone]);
+  const existingPhone = await dbGet("SELECT id FROM users WHERE phone = ?", [
+    trimmedPhone,
+  ]);
   if (existingPhone) {
     throw new Error("Nomor HP ini sudah terdaftar di akun lain");
   }
@@ -1085,7 +1607,9 @@ async function createUser(username, password, phone) {
 }
 
 async function findUserByUsername(username) {
-  return dbGet("SELECT * FROM users WHERE username = ?", [String(username || "").trim()]);
+  return dbGet("SELECT * FROM users WHERE username = ?", [
+    String(username || "").trim(),
+  ]);
 }
 
 async function findUserById(id) {
@@ -1093,7 +1617,9 @@ async function findUserById(id) {
 }
 
 async function findUserByPhone(phone) {
-  return dbGet("SELECT * FROM users WHERE phone = ?", [String(phone || "").replace(/[^\d]/g, "")]);
+  return dbGet("SELECT * FROM users WHERE phone = ?", [
+    String(phone || "").replace(/[^\d]/g, ""),
+  ]);
 }
 
 function generateRandomDigits(length) {
@@ -1131,21 +1657,319 @@ async function findUserByApiKey(rawKey) {
   }
 
   const prefix = rawKey.slice(0, 12);
-  const row = await dbGet("SELECT * FROM users WHERE api_key_prefix = ?", [prefix]);
+  const row = await dbGet("SELECT * FROM users WHERE api_key_prefix = ?", [
+    prefix,
+  ]);
 
-  if (!row || !row.apiKeyHash || !verifyPassword(rawKey, row.apiKeySalt, row.apiKeyHash)) {
+  if (
+    !row ||
+    !row.apiKeyHash ||
+    !verifyPassword(rawKey, row.apiKeySalt, row.apiKeyHash)
+  ) {
     return null;
   }
 
   return row;
 }
 
+// ---------------------------------------------------------------------------
+// Lupa password: verifikasi OTP dikirim ke nomor WA terdaftar user, supaya
+// yang bisa reset password cuma pemegang nomor HP-nya (bukan sembarang orang
+// yang kebetulan tahu/tebak username).
+// ---------------------------------------------------------------------------
+
+const OTP_LENGTH = 6;
+const OTP_TTL_MS = Math.max(
+  60 * 1000,
+  Number(process.env.OTP_TTL_MS || 5 * 60 * 1000),
+);
+const OTP_MAX_VERIFY_ATTEMPTS = 5;
+const OTP_RESEND_COOLDOWN_MS = Math.max(
+  10 * 1000,
+  Number(process.env.OTP_RESEND_COOLDOWN_MS || 60 * 1000),
+);
+
+// Jeda antar permintaan OTP per (tipe subject + username) — dicek TERLEPAS
+// dari username-nya valid atau tidak, supaya tombol "Kirim ulang OTP" tidak
+// bisa dipakai nge-spam WA target maupun buat brute-force tebak username.
+const otpResendCooldown = new Map();
+
+function otpResendKey(subjectType, username) {
+  return `${subjectType}:${String(username || "")
+    .trim()
+    .toLowerCase()}`;
+}
+
+function getOtpResendCooldownSeconds(key) {
+  const lastSentAt = otpResendCooldown.get(key);
+  if (!lastSentAt) {
+    return 0;
+  }
+  const remainingMs = lastSentAt + OTP_RESEND_COOLDOWN_MS - Date.now();
+  return remainingMs > 0 ? Math.ceil(remainingMs / 1000) : 0;
+}
+
+function markOtpResendSent(key) {
+  otpResendCooldown.set(key, Date.now());
+}
+
+const otpResendCooldownSweeper = setInterval(() => {
+  const now = Date.now();
+  for (const [key, lastSentAt] of otpResendCooldown) {
+    if (lastSentAt + OTP_RESEND_COOLDOWN_MS <= now) {
+      otpResendCooldown.delete(key);
+    }
+  }
+}, 60 * 1000);
+otpResendCooldownSweeper.unref();
+
+function hashOtp(otp) {
+  return crypto.createHash("sha256").update(String(otp)).digest("hex");
+}
+
+function verifyOtp(otp, expectedHash) {
+  const hashBuffer = Buffer.from(hashOtp(otp), "hex");
+  const expectedBuffer = Buffer.from(expectedHash, "hex");
+  return (
+    hashBuffer.length === expectedBuffer.length &&
+    crypto.timingSafeEqual(hashBuffer, expectedBuffer)
+  );
+}
+
+async function updateUserPassword(id, password) {
+  if (String(password || "").length < 6) {
+    throw new Error("Password minimal 6 karakter");
+  }
+
+  const existing = await dbGet("SELECT id FROM users WHERE id = ?", [id]);
+  if (!existing) {
+    throw new Error("User tidak ditemukan");
+  }
+
+  const { salt, hash } = hashPassword(password);
+  await dbRun(
+    "UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?",
+    [hash, salt, id],
+  );
+}
+
+// subjectType: "user" (tabel users) atau "admin" (tabel admins) — polanya
+// sama dengan web_sessions (subject_type/subject_id), supaya 1 mekanisme OTP
+// dipakai bersama oleh portal user & panel admin.
+async function findResetSubject(subjectType, username) {
+  return subjectType === "admin"
+    ? findAdminByUsername(username)
+    : findUserByUsername(username);
+}
+
+// Return-nya dipakai route untuk kasih pesan spesifik ke user (username tidak
+// ditemukan / belum ada nomor WA / OTP gagal terkirim) — atas permintaan
+// eksplisit supaya user tidak bingung, bukan pesan generik.
+async function requestPasswordReset(subjectType, username) {
+  const subject = await findResetSubject(subjectType, username);
+  if (!subject) {
+    return { found: false, hasPhone: false, delivered: false, subjectId: null };
+  }
+  if (!subject.phone) {
+    return {
+      found: true,
+      hasPhone: false,
+      delivered: false,
+      subjectId: subject.id,
+    };
+  }
+
+  const otp = generateRandomDigits(OTP_LENGTH);
+  const reset = {
+    id: uuidv4(),
+    subjectType,
+    subjectId: subject.id,
+    otpHash: hashOtp(otp),
+    expiresAt: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+
+  // Cuma 1 OTP aktif per subject — permintaan baru membuang yang lama supaya
+  // tidak ada beberapa kode valid sekaligus beredar.
+  await dbRun(
+    "DELETE FROM password_resets WHERE subject_type = ? AND subject_id = ? AND used_at IS NULL",
+    [subjectType, subject.id],
+  );
+  await dbRun(
+    "INSERT INTO password_resets (id, subject_type, subject_id, otp_hash, expires_at, attempts, created_at) VALUES (@id, @subjectType, @subjectId, @otpHash, @expiresAt, 0, @createdAt)",
+    reset,
+  );
+
+  const label = subjectType === "admin" ? "admin" : "akun";
+  const delivered = await sendUserNotification(
+    subject.phone,
+    `Kode OTP reset password ${label} *${subject.username}*: ${otp}\n\nBerlaku ${Math.round(OTP_TTL_MS / 60000)} menit. JANGAN bagikan kode ini ke siapa pun, termasuk yang mengaku admin/CS — siapa saja yang punya kode ini bisa mengambil alih akun kamu.\n\nBukan kamu yang minta reset password? Abaikan pesan ini, akun kamu tetap aman.`,
+  );
+
+  return { found: true, hasPhone: true, delivered, subjectId: subject.id };
+}
+
+async function verifyOtpAndResetPassword(
+  subjectType,
+  username,
+  otp,
+  newPassword,
+) {
+  const subject = await findResetSubject(subjectType, username);
+  if (!subject) {
+    throw new Error("Kode OTP salah atau sudah kedaluwarsa");
+  }
+
+  const reset = await dbGet(
+    "SELECT * FROM password_resets WHERE subject_type = ? AND subject_id = ? AND used_at IS NULL ORDER BY created_at DESC LIMIT 1",
+    [subjectType, subject.id],
+  );
+
+  if (!reset || new Date(reset.expiresAt).getTime() <= Date.now()) {
+    throw new Error("Kode OTP salah atau sudah kedaluwarsa");
+  }
+
+  if (reset.attempts >= OTP_MAX_VERIFY_ATTEMPTS) {
+    throw new Error(
+      "Terlalu banyak percobaan kode salah. Minta kode OTP baru.",
+    );
+  }
+
+  if (!verifyOtp(String(otp || ""), reset.otpHash)) {
+    await dbRun(
+      "UPDATE password_resets SET attempts = attempts + 1 WHERE id = ?",
+      [reset.id],
+    );
+    throw new Error("Kode OTP salah atau sudah kedaluwarsa");
+  }
+
+  if (subjectType === "admin") {
+    await updateAdminPassword(subject.id, newPassword);
+  } else {
+    await updateUserPassword(subject.id, newPassword);
+  }
+  await dbRun("UPDATE password_resets SET used_at = ? WHERE id = ?", [
+    new Date().toISOString(),
+    reset.id,
+  ]);
+
+  // Konfirmasi ke pemilik nomor bahwa password-nya baru saja berubah — supaya
+  // kalau bukan dia yang minta, langsung sadar akun kemungkinan diambil alih.
+  const label = subjectType === "admin" ? "admin" : "akun";
+  await sendUserNotification(
+    subject.phone,
+    `Password ${label} *${subject.username}* baru saja berhasil diubah lewat fitur lupa password.\n\nKalau bukan kamu yang melakukan ini, segera hubungi admin — akun kamu kemungkinan sudah diakses orang lain.`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 2FA login: langkah kedua opsional (diaktifkan admin lewat toggle di tab
+// Pengaturan, config key "twoFactorEnabled") setelah username+password benar
+// — kode OTP dikirim ke WA terdaftar, sesi (cookie) baru dibuat SETELAH OTP
+// itu diverifikasi. State "menunggu OTP" disimpan in-memory (bukan DB, sama
+// seperti loginAttempts/otpResendCooldown) — cukup untuk state berumur
+// pendek, & kalau proses restart penyerang juga kehilangan pendingToken-nya.
+// ---------------------------------------------------------------------------
+
+const TWO_FACTOR_TTL_MS = Math.max(
+  60 * 1000,
+  Number(process.env.TWO_FACTOR_TTL_MS || 5 * 60 * 1000),
+);
+const TWO_FACTOR_MAX_VERIFY_ATTEMPTS = 5;
+
+const twoFactorPending = new Map();
+
+async function isTwoFactorEnabled() {
+  return (await getConfig("twoFactorEnabled")) === "true";
+}
+
+// Dipanggil SETELAH username+password diverifikasi benar. Return null kalau
+// subject tidak punya nomor WA (2FA tidak bisa jalan untuk akun ini — caller
+// harus tolak login dengan pesan yang jelas, BUKAN loloskan tanpa 2FA).
+async function startTwoFactorLogin(subjectType, subject) {
+  if (!subject.phone) {
+    return null;
+  }
+
+  const otp = generateRandomDigits(OTP_LENGTH);
+  const pendingToken = uuidv4();
+
+  twoFactorPending.set(pendingToken, {
+    subjectType,
+    subjectId: subject.id,
+    otpHash: hashOtp(otp),
+    attempts: 0,
+    expiresAt: Date.now() + TWO_FACTOR_TTL_MS,
+  });
+
+  const label = subjectType === "admin" ? "admin" : "akun";
+  const delivered = await sendUserNotification(
+    subject.phone,
+    `Kode verifikasi login ${label} *${subject.username}*: ${otp}\n\nBerlaku ${Math.round(TWO_FACTOR_TTL_MS / 60000)} menit. JANGAN bagikan kode ini ke siapa pun — kalau bukan kamu yang barusan coba login, segera ganti password akun ini.`,
+  );
+
+  return { pendingToken, delivered };
+}
+
+// Return { subjectType, subjectId } kalau OTP benar (entry pending langsung
+// dihapus — sekali pakai). Melempar Error dengan pesan aman-ditampilkan kalau
+// salah/kedaluwarsa/kehabisan percobaan.
+// expectedSubjectType WAJIB dicocokkan di sini (bukan cuma dipercaya dari
+// pending.subjectType) — endpoint verify-2fa admin & user terpisah, jadi
+// pendingToken dari alur login user tidak boleh bisa dicoba di endpoint
+// verify-2fa admin (atau sebaliknya), walau secara praktis ID antar tabel
+// beda ruang & nyaris mustahil bentrok, ini tetap harus ditolak eksplisit
+// bukan cuma "kebetulan gagal" di findAdminById/findUserById.
+function verifyTwoFactorLogin(pendingToken, otp, expectedSubjectType) {
+  const pending = twoFactorPending.get(pendingToken);
+  if (
+    !pending ||
+    pending.expiresAt <= Date.now() ||
+    pending.subjectType !== expectedSubjectType
+  ) {
+    twoFactorPending.delete(pendingToken);
+    throw new Error(
+      "Sesi verifikasi tidak valid atau sudah kedaluwarsa. Silakan login ulang.",
+    );
+  }
+
+  if (pending.attempts >= TWO_FACTOR_MAX_VERIFY_ATTEMPTS) {
+    twoFactorPending.delete(pendingToken);
+    throw new Error(
+      "Terlalu banyak percobaan kode salah. Silakan login ulang.",
+    );
+  }
+
+  if (!verifyOtp(String(otp || ""), pending.otpHash)) {
+    pending.attempts += 1;
+    throw new Error("Kode verifikasi salah.");
+  }
+
+  twoFactorPending.delete(pendingToken);
+  return { subjectType: pending.subjectType, subjectId: pending.subjectId };
+}
+
+// Sapu entri kedaluwarsa berkala — pola sama dengan loginAttemptSweeper.
+const twoFactorSweeper = setInterval(() => {
+  const now = Date.now();
+  for (const [token, pending] of twoFactorPending) {
+    if (pending.expiresAt <= now) {
+      twoFactorPending.delete(token);
+    }
+  }
+}, 60 * 1000);
+twoFactorSweeper.unref();
+
 async function requireUserApiKey(req, res, next) {
   const providedKey = req.get("x-api-key") || "";
   const row = await findUserByApiKey(providedKey);
 
   if (!row) {
-    return res.status(401).json({ success: false, message: "API key tidak valid", requestId: req.id });
+    return res.status(401).json({
+      success: false,
+      message: "API key tidak valid",
+      requestId: req.id,
+    });
   }
 
   req.user = rowToUser(row);
@@ -1179,7 +2003,10 @@ async function updateUserPlan(id, plan) {
 }
 
 async function setUserPendingPlanRequest(id, plan) {
-  await dbRun("UPDATE users SET pending_plan_request = ? WHERE id = ?", [plan, id]);
+  await dbRun("UPDATE users SET pending_plan_request = ? WHERE id = ?", [
+    plan,
+    id,
+  ]);
 }
 
 // Downgrade ke Free HANYA dipanggil lewat konfirmasi eksplisit user (balas
@@ -1204,11 +2031,14 @@ async function notifyExpiredPlans() {
 
   for (const row of rows) {
     const planLabel = PLAN_DEFS[row.plan]?.label || row.plan;
-    const expiredDate = new Date(row.planExpiresAt).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+    const expiredDate = new Date(row.planExpiresAt).toLocaleDateString(
+      "id-ID",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      },
+    );
 
     const jid = `${row.phone}@s.whatsapp.net`;
     const delivered = await sendUserNotification(
@@ -1218,10 +2048,19 @@ async function notifyExpiredPlans() {
 
     if (delivered) {
       await setPaymentBotState(jid, "expiry_choice");
-      await dbRun("UPDATE users SET expiry_notice_sent_at = ? WHERE id = ?", [new Date().toISOString(), row.id]);
-      logger.info("Notifikasi paket kadaluarsa terkirim", { user: row.username, plan: row.plan });
+      await dbRun("UPDATE users SET expiry_notice_sent_at = ? WHERE id = ?", [
+        new Date().toISOString(),
+        row.id,
+      ]);
+      logger.info("Notifikasi paket kadaluarsa terkirim", {
+        user: row.username,
+        plan: row.plan,
+      });
     } else {
-      logger.warn("Gagal mengirim notifikasi paket kadaluarsa (WAG notifier belum terhubung)", { user: row.username });
+      logger.warn(
+        "Gagal mengirim notifikasi paket kadaluarsa (WAG notifier belum terhubung)",
+        { user: row.username },
+      );
     }
   }
 }
@@ -1230,11 +2069,16 @@ async function notifyExpiredPlans() {
 // layanannya diblokir (beda dengan notifyExpiredPlans yang jalan setelah
 // telanjur mati). Idempotent lewat expiry_warning_sent_at, yang di-reset tiap
 // kali paket diperpanjang/diganti di updateUserPlan.
-const PLAN_EXPIRY_WARNING_DAYS = Math.max(1, Number(process.env.PLAN_EXPIRY_WARNING_DAYS || 3));
+const PLAN_EXPIRY_WARNING_DAYS = Math.max(
+  1,
+  Number(process.env.PLAN_EXPIRY_WARNING_DAYS || 3),
+);
 
 async function notifyExpiringSoonPlans() {
   const now = Date.now();
-  const horizon = new Date(now + PLAN_EXPIRY_WARNING_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const horizon = new Date(
+    now + PLAN_EXPIRY_WARNING_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
 
   const rows = await dbAll(
     `SELECT id, username, phone, plan, plan_expires_at FROM users
@@ -1249,7 +2093,10 @@ async function notifyExpiringSoonPlans() {
   for (const row of rows) {
     const planLabel = PLAN_DEFS[row.plan]?.label || row.plan;
     const expiresAtMs = new Date(row.planExpiresAt).getTime();
-    const daysLeft = Math.max(1, Math.ceil((expiresAtMs - now) / (24 * 60 * 60 * 1000)));
+    const daysLeft = Math.max(
+      1,
+      Math.ceil((expiresAtMs - now) / (24 * 60 * 60 * 1000)),
+    );
     const expiryDate = new Date(row.planExpiresAt).toLocaleDateString("id-ID", {
       day: "numeric",
       month: "long",
@@ -1266,12 +2113,22 @@ async function notifyExpiringSoonPlans() {
       // State yang sama dengan alur kadaluarsa: balas "1" = minta perpanjang,
       // "2" = turun ke Free. Konsisten supaya user tidak bingung.
       await setPaymentBotState(jid, "expiry_choice");
-      await dbRun("UPDATE users SET expiry_warning_sent_at = ? WHERE id = ?", [new Date().toISOString(), row.id]);
-      logger.info("Peringatan paket akan berakhir terkirim", { user: row.username, plan: row.plan, daysLeft });
-    } else {
-      logger.warn("Gagal mengirim peringatan paket akan berakhir (WAG notifier belum terhubung)", {
+      await dbRun("UPDATE users SET expiry_warning_sent_at = ? WHERE id = ?", [
+        new Date().toISOString(),
+        row.id,
+      ]);
+      logger.info("Peringatan paket akan berakhir terkirim", {
         user: row.username,
+        plan: row.plan,
+        daysLeft,
       });
+    } else {
+      logger.warn(
+        "Gagal mengirim peringatan paket akan berakhir (WAG notifier belum terhubung)",
+        {
+          user: row.username,
+        },
+      );
     }
   }
 }
@@ -1307,7 +2164,13 @@ async function createWebSession(subjectType, subjectId) {
 
   await dbRun(
     "INSERT INTO web_sessions (token, subject_type, subject_id, created_at, expires_at) VALUES (?, ?, ?, ?, ?)",
-    [token, subjectType, subjectId, new Date(now).toISOString(), new Date(now + SESSION_TTL_MS).toISOString()],
+    [
+      token,
+      subjectType,
+      subjectId,
+      new Date(now).toISOString(),
+      new Date(now + SESSION_TTL_MS).toISOString(),
+    ],
   );
 
   return token;
@@ -1318,10 +2181,10 @@ async function findWebSession(token, subjectType) {
     return null;
   }
 
-  const row = await dbGet("SELECT * FROM web_sessions WHERE token = ? AND subject_type = ?", [
-    token,
-    subjectType,
-  ]);
+  const row = await dbGet(
+    "SELECT * FROM web_sessions WHERE token = ? AND subject_type = ?",
+    [token, subjectType],
+  );
 
   if (!row) {
     return null;
@@ -1369,7 +2232,13 @@ function parseCookies(req) {
 }
 
 function setSessionCookie(req, res, name, token, maxAgeSec) {
-  const parts = [`${name}=${encodeURIComponent(token)}`, "HttpOnly", "Path=/", "SameSite=Lax", `Max-Age=${maxAgeSec}`];
+  const parts = [
+    `${name}=${encodeURIComponent(token)}`,
+    "HttpOnly",
+    "Path=/",
+    "SameSite=Lax",
+    `Max-Age=${maxAgeSec}`,
+  ];
   if (req.secure) {
     parts.push("Secure");
   }
@@ -1396,10 +2265,7 @@ async function requireAdminSession(req, res, next) {
         requestId: req.id,
       });
     }
-    // Redirect ke portal user (bukan /login) supaya pengunjung biasa yang
-    // buka "/" tanpa sesi tidak langsung disodori halaman login admin —
-    // admin tetap bisa buka /login langsung lewat URL kalau perlu.
-    return res.redirect(302, "/app/login");
+    return res.redirect(302, "/login");
   }
 
   req.admin = { id: webSession.subjectId };
@@ -1407,23 +2273,11 @@ async function requireAdminSession(req, res, next) {
 }
 
 async function requireUserSession(req, res, next) {
-  const cookies = parseCookies(req);
-  const webSession = await findWebSession(cookies.wa_user_sid, "user");
-  const userRow = webSession ? await findUserById(webSession.subjectId) : null;
-
-  if (!webSession || !userRow) {
-    if (req.path.startsWith("/api/")) {
-      return res.status(401).json({
-        success: false,
-        message: "Belum login",
-        requestId: req.id,
-      });
-    }
-    return res.redirect(302, "/app/login");
-  }
-
-  req.user = rowToUser(userRow);
-  return next();
+  return res.status(410).json({
+    success: false,
+    message: "Portal user sudah dinonaktifkan. Gunakan login admin.",
+    requestId: req.id,
+  });
 }
 
 async function getConfig(key) {
@@ -1462,7 +2316,9 @@ async function getPlansWithPricing() {
 // ---------------------------------------------------------------------------
 
 async function getPaymentBotState(jid) {
-  const row = await dbGet("SELECT state FROM payment_bot_state WHERE jid = ?", [jid]);
+  const row = await dbGet("SELECT state FROM payment_bot_state WHERE jid = ?", [
+    jid,
+  ]);
   return row ? row.state : null;
 }
 
@@ -1501,7 +2357,9 @@ async function sendPaymentMenu(session, jid) {
 async function sendDanaInfo(session, jid) {
   const { danaNumber, danaName } = await getPaymentConfig();
   if (!danaNumber) {
-    await session.sock.sendMessage(jid, { text: "Maaf kak, metode DANA belum tersedia. Silakan pilih metode lain." });
+    await session.sock.sendMessage(jid, {
+      text: "Maaf kak, metode DANA belum tersedia. Silakan pilih metode lain.",
+    });
     return false;
   }
   await session.sock.sendMessage(jid, {
@@ -1513,7 +2371,9 @@ async function sendDanaInfo(session, jid) {
 async function sendMandiriInfo(session, jid) {
   const { mandiriNumber, mandiriName } = await getPaymentConfig();
   if (!mandiriNumber) {
-    await session.sock.sendMessage(jid, { text: "Maaf kak, metode Bank Mandiri belum tersedia. Silakan pilih metode lain." });
+    await session.sock.sendMessage(jid, {
+      text: "Maaf kak, metode Bank Mandiri belum tersedia. Silakan pilih metode lain.",
+    });
     return false;
   }
   await session.sock.sendMessage(jid, {
@@ -1525,13 +2385,16 @@ async function sendMandiriInfo(session, jid) {
 async function sendQrisInfo(session, jid) {
   const qrisImage = await getConfig("paymentQrisImage");
   if (!qrisImage) {
-    await session.sock.sendMessage(jid, { text: "Maaf kak, metode QRIS belum tersedia. Silakan pilih metode lain." });
+    await session.sock.sendMessage(jid, {
+      text: "Maaf kak, metode QRIS belum tersedia. Silakan pilih metode lain.",
+    });
     return false;
   }
   const base64Data = qrisImage.split(",").pop();
   await session.sock.sendMessage(jid, {
     image: Buffer.from(base64Data, "base64"),
-    caption: "Scan QRIS berikut untuk pembayaran.\n\nSetelah transfer, kirim bukti pembayaran ke chat ini ya, nanti segera dikonfirmasi.",
+    caption:
+      "Scan QRIS berikut untuk pembayaran.\n\nSetelah transfer, kirim bukti pembayaran ke chat ini ya, nanti segera dikonfirmasi.",
   });
   return true;
 }
@@ -1548,14 +2411,21 @@ async function buildPlanListText() {
 
   for (const key of ["free", "pro", "max"]) {
     const def = plans[key];
-    const price = def.price > 0 ? `Rp${def.price.toLocaleString("id-ID")}/bulan` : "Gratis";
-    const duration = def.durationDays ? `, berlaku ${def.durationDays} hari` : "";
+    const price =
+      def.price > 0 ? `Rp${def.price.toLocaleString("id-ID")}/bulan` : "Gratis";
+    const duration = def.durationDays
+      ? `, berlaku ${def.durationDays} hari`
+      : "";
     lines.push(`*${def.label}* - ${price}`);
-    lines.push(`${def.maxAccounts} akun WAG, ${def.dailyMessageLimit} pesan/hari${duration}`);
+    lines.push(
+      `${def.maxAccounts} akun WAG, ${def.dailyMessageLimit} pesan/hari${duration}`,
+    );
     lines.push("");
   }
 
-  lines.push("Balas nama paketnya (Free/Pro/Max), atau ketik *batal* untuk membatalkan.");
+  lines.push(
+    "Balas nama paketnya (Free/Pro/Max), atau ketik *batal* untuk membatalkan.",
+  );
   return lines.join("\n");
 }
 
@@ -1563,7 +2433,14 @@ async function sendPlanList(session, jid) {
   await session.sock.sendMessage(jid, { text: await buildPlanListText() });
 }
 
-const CANCEL_KEYWORDS = ["batal", "gak jadi", "ga jadi", "tidak jadi", "nggak jadi", "cancel"];
+const CANCEL_KEYWORDS = [
+  "batal",
+  "gak jadi",
+  "ga jadi",
+  "tidak jadi",
+  "nggak jadi",
+  "cancel",
+];
 
 function isCancelKeyword(normalized) {
   return CANCEL_KEYWORDS.some((k) => normalized.includes(k));
@@ -1579,7 +2456,7 @@ async function cancelUpgradeFlow(session, jid) {
   }
 
   await session.sock.sendMessage(jid, {
-    text: "Oke kak, dibatalkan ya. Chat \"upgrade paket\" lagi kapan aja kalau mau lanjut.",
+    text: 'Oke kak, dibatalkan ya. Chat "upgrade paket" lagi kapan aja kalau mau lanjut.',
   });
   await clearPaymentBotState(jid);
 }
@@ -1603,23 +2480,34 @@ async function handlePaymentBotMessage(session, jid, text) {
   if (state === "expiry_choice") {
     const userRow = await findUserByPhone(jid.split("@")[0]);
 
-    if (normalized === "2" || normalized.includes("free") || normalized.includes("turun")) {
+    if (
+      normalized === "2" ||
+      normalized.includes("free") ||
+      normalized.includes("turun")
+    ) {
       if (userRow) {
         await downgradeUserToFreeConfirmed(userRow.id);
       }
       await session.sock.sendMessage(jid, {
-        text: "Oke kak, paket diturunkan ke Free ya. Chat \"upgrade paket\" lagi kapan aja kalau mau lanjut pakai kuota lebih besar.",
+        text: 'Oke kak, paket diturunkan ke Free ya. Chat "upgrade paket" lagi kapan aja kalau mau lanjut pakai kuota lebih besar.',
       });
       await clearPaymentBotState(jid);
       return;
     }
 
-    if (normalized === "1" || normalized.includes("perpanjang") || normalized.includes("lanjut") || normalized.includes("pro") || normalized.includes("max")) {
+    if (
+      normalized === "1" ||
+      normalized.includes("perpanjang") ||
+      normalized.includes("lanjut") ||
+      normalized.includes("pro") ||
+      normalized.includes("max")
+    ) {
       if (userRow) {
         const renewPlan = PLAN_DEFS[userRow.plan] ? userRow.plan : "pro";
         await setUserPendingPlanRequest(userRow.id, renewPlan);
         const price = (await getPlansWithPricing())[renewPlan].price;
-        const priceText = price > 0 ? `Rp${price.toLocaleString("id-ID")}/bulan` : "gratis";
+        const priceText =
+          price > 0 ? `Rp${price.toLocaleString("id-ID")}/bulan` : "gratis";
         sendAdminNotification(
           `${userRow.username} (${userRow.phone}) mau perpanjang paket ${PLAN_DEFS[renewPlan].label} (${priceText}) lewat chat — paketnya sudah kadaluarsa. Buka tab Pengguna untuk konfirmasi setelah bayar.`,
         );
@@ -1644,7 +2532,11 @@ async function handlePaymentBotMessage(session, jid, text) {
       success = await sendDanaInfo(session, jid);
     } else if (normalized === "2" || normalized.includes("qris")) {
       success = await sendQrisInfo(session, jid);
-    } else if (normalized === "3" || normalized.includes("mandiri") || normalized.includes("bank")) {
+    } else if (
+      normalized === "3" ||
+      normalized.includes("mandiri") ||
+      normalized.includes("bank")
+    ) {
       success = await sendMandiriInfo(session, jid);
     }
 
@@ -1676,7 +2568,11 @@ async function handlePaymentBotMessage(session, jid, text) {
       return;
     }
 
-    if (normalized === "2" || normalized.includes("metode") || normalized.includes("bayar")) {
+    if (
+      normalized === "2" ||
+      normalized.includes("metode") ||
+      normalized.includes("bayar")
+    ) {
       await sendPaymentMenu(session, jid);
       await setPaymentBotState(jid, "awaiting_choice");
       return;
@@ -1701,19 +2597,24 @@ async function handlePaymentBotMessage(session, jid, text) {
         await setUserPendingPlanRequest(userRow.id, null);
       }
       await session.sock.sendMessage(jid, {
-        text: "Oke kak, tetap di paket Free ya (gratis). Chat \"upgrade paket\" lagi kapan aja kalau berubah pikiran.",
+        text: 'Oke kak, tetap di paket Free ya (gratis). Chat "upgrade paket" lagi kapan aja kalau berubah pikiran.',
       });
       await clearPaymentBotState(jid);
       return;
     }
 
-    const chosenPlan = normalized.includes("max") ? "max" : normalized.includes("pro") ? "pro" : null;
+    const chosenPlan = normalized.includes("max")
+      ? "max"
+      : normalized.includes("pro")
+        ? "pro"
+        : null;
 
     if (chosenPlan) {
       if (userRow) {
         await setUserPendingPlanRequest(userRow.id, chosenPlan);
         const price = (await getPlansWithPricing())[chosenPlan].price;
-        const priceText = price > 0 ? `Rp${price.toLocaleString("id-ID")}/bulan` : "gratis";
+        const priceText =
+          price > 0 ? `Rp${price.toLocaleString("id-ID")}/bulan` : "gratis";
         sendAdminNotification(
           `${userRow.username} (${userRow.phone}) ganti pilihan upgrade ke paket ${PLAN_DEFS[chosenPlan].label} (${priceText}) lewat chat. Buka tab Pengguna untuk konfirmasi.`,
         );
@@ -1772,7 +2673,10 @@ async function getSessionRow(id) {
 }
 
 async function listUserSessionRows(userId) {
-  return dbAll("SELECT * FROM sessions WHERE owner_user_id = ? ORDER BY created_at DESC", [userId]);
+  return dbAll(
+    "SELECT * FROM sessions WHERE owner_user_id = ? ORDER BY created_at DESC",
+    [userId],
+  );
 }
 
 async function listPendingRequests() {
@@ -1790,11 +2694,10 @@ async function approveSessionRequest(id, adminId) {
     throw new Error("Permintaan tidak ditemukan atau sudah diproses");
   }
 
-  await dbRun("UPDATE sessions SET status = 'active', approved_at = ?, approved_by = ? WHERE id = ?", [
-    new Date().toISOString(),
-    adminId,
-    id,
-  ]);
+  await dbRun(
+    "UPDATE sessions SET status = 'active', approved_at = ?, approved_by = ? WHERE id = ?",
+    [new Date().toISOString(), adminId, id],
+  );
 
   return getSessionRow(id);
 }
@@ -1805,11 +2708,10 @@ async function rejectSessionRequest(id, reason) {
     throw new Error("Permintaan tidak ditemukan atau sudah diproses");
   }
 
-  await dbRun("UPDATE sessions SET status = 'rejected', rejected_at = ?, rejection_reason = ? WHERE id = ?", [
-    new Date().toISOString(),
-    reason || null,
-    id,
-  ]);
+  await dbRun(
+    "UPDATE sessions SET status = 'rejected', rejected_at = ?, rejection_reason = ? WHERE id = ?",
+    [new Date().toISOString(), reason || null, id],
+  );
 
   return getSessionRow(id);
 }
@@ -1828,19 +2730,31 @@ async function sendSystemNotification(jid, text) {
 
   try {
     const notifierSessionId = await getConfig("notifierSessionId");
-    const notifierSession = notifierSessionId ? sessions.get(notifierSessionId) : null;
+    const notifierSession = notifierSessionId
+      ? sessions.get(notifierSessionId)
+      : null;
 
-    if (!notifierSession || !notifierSession.isConnected || !notifierSession.sock) {
-      logger.warn("Notifikasi WA dilewati: WAG notifier belum dikonfigurasi/terhubung", {
-        jid: maskDestination(jid),
-      });
+    if (
+      !notifierSession ||
+      !notifierSession.isConnected ||
+      !notifierSession.sock
+    ) {
+      logger.warn(
+        "Notifikasi WA dilewati: WAG notifier belum dikonfigurasi/terhubung",
+        {
+          jid: maskDestination(jid),
+        },
+      );
       return false;
     }
 
     await notifierSession.sock.sendMessage(normalizeRecipient(jid), { text });
     return true;
   } catch (error) {
-    logger.warn("Gagal mengirim notifikasi WA", { jid: maskDestination(jid), error: error.message });
+    logger.warn("Gagal mengirim notifikasi WA", {
+      jid: maskDestination(jid),
+      error: error.message,
+    });
     return false;
   }
 }
@@ -1853,7 +2767,9 @@ async function sendAdminNotification(text) {
     }
     return sendSystemNotification(adminPhone, text);
   } catch (error) {
-    logger.warn("Gagal mengambil konfigurasi nomor admin", { error: error.message });
+    logger.warn("Gagal mengambil konfigurasi nomor admin", {
+      error: error.message,
+    });
     return false;
   }
 }
@@ -1873,9 +2789,12 @@ async function notifySessionLoggedOut(session) {
   const notifierSessionId = await getConfig("notifierSessionId");
 
   if (notifierSessionId && session.id === notifierSessionId) {
-    logger.error("WAG notifier sendiri yang logout — notifikasi WA tidak bisa dikirim, perlu scan ulang manual", {
-      session: session.id,
-    });
+    logger.error(
+      "WAG notifier sendiri yang logout — notifikasi WA tidak bisa dikirim, perlu scan ulang manual",
+      {
+        session: session.id,
+      },
+    );
     return;
   }
 
@@ -1889,7 +2808,10 @@ async function notifySessionLoggedOut(session) {
         owner.phone,
         `⚠️ Akun WAG kamu *${session.name}* terputus dari WhatsApp dan perlu di-scan ulang.\n\nSelama belum di-scan, pesan yang dikirim lewat akun ini akan gagal. Buka ${portalUrl} lalu scan QR-nya lagi ya.`,
       );
-      logger.info("Notifikasi WAG terputus dikirim ke user", { session: session.id, user: owner.username });
+      logger.info("Notifikasi WAG terputus dikirim ke user", {
+        session: session.id,
+        user: owner.username,
+      });
     }
     return;
   }
@@ -1897,12 +2819,23 @@ async function notifySessionLoggedOut(session) {
   await sendAdminNotification(
     `⚠️ Akun WAG *${session.name}* (${session.id}) terputus dari WhatsApp dan perlu di-scan ulang lewat dashboard admin.`,
   );
-  logger.info("Notifikasi WAG terputus dikirim ke admin", { session: session.id });
+  logger.info("Notifikasi WAG terputus dikirim ke admin", {
+    session: session.id,
+  });
 }
 
-const WEBHOOK_MAX_ATTEMPTS = Math.max(1, Number(process.env.WEBHOOK_MAX_ATTEMPTS || 3));
-const WEBHOOK_RETRY_BASE_MS = Math.max(200, Number(process.env.WEBHOOK_RETRY_BASE_MS || 2000));
-const MAX_WEBHOOK_LOG_ENTRIES = Math.max(50, Number(process.env.MAX_WEBHOOK_LOG_ENTRIES || 500));
+const WEBHOOK_MAX_ATTEMPTS = Math.max(
+  1,
+  Number(process.env.WEBHOOK_MAX_ATTEMPTS || 3),
+);
+const WEBHOOK_RETRY_BASE_MS = Math.max(
+  200,
+  Number(process.env.WEBHOOK_RETRY_BASE_MS || 2000),
+);
+const MAX_WEBHOOK_LOG_ENTRIES = Math.max(
+  50,
+  Number(process.env.MAX_WEBHOOK_LOG_ENTRIES || 500),
+);
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -1937,16 +2870,37 @@ async function postWebhook(url, secret, payload, label, userId) {
       lastStatus = response.status;
 
       if (response.ok) {
-        logger.info(`${label} pesan masuk terkirim`, { to: url, messageId: payload.messageId, attempt });
-        await recordWebhookDelivery(userId, url, "sent", response.status, attempt, null);
+        logger.info(`${label} pesan masuk terkirim`, {
+          to: url,
+          messageId: payload.messageId,
+          attempt,
+        });
+        await recordWebhookDelivery(
+          userId,
+          url,
+          "sent",
+          response.status,
+          attempt,
+          null,
+        );
         return;
       }
 
       lastError = `HTTP ${response.status}`;
 
       if (response.status >= 400 && response.status < 500) {
-        logger.warn(`${label} ditolak penerima, tidak diulang`, { to: url, status: response.status });
-        await recordWebhookDelivery(userId, url, "failed", response.status, attempt, lastError);
+        logger.warn(`${label} ditolak penerima, tidak diulang`, {
+          to: url,
+          status: response.status,
+        });
+        await recordWebhookDelivery(
+          userId,
+          url,
+          "failed",
+          response.status,
+          attempt,
+          lastError,
+        );
         return;
       }
     } catch (error) {
@@ -1958,16 +2912,43 @@ async function postWebhook(url, secret, payload, label, userId) {
     }
   }
 
-  logger.warn(`${label} pesan masuk gagal terkirim`, { to: url, error: lastError, attempts: WEBHOOK_MAX_ATTEMPTS });
-  await recordWebhookDelivery(userId, url, "failed", lastStatus, WEBHOOK_MAX_ATTEMPTS, lastError);
+  logger.warn(`${label} pesan masuk gagal terkirim`, {
+    to: url,
+    error: lastError,
+    attempts: WEBHOOK_MAX_ATTEMPTS,
+  });
+  await recordWebhookDelivery(
+    userId,
+    url,
+    "failed",
+    lastStatus,
+    WEBHOOK_MAX_ATTEMPTS,
+    lastError,
+  );
 }
 
-async function recordWebhookDelivery(userId, url, status, httpStatus, attempts, error) {
+async function recordWebhookDelivery(
+  userId,
+  url,
+  status,
+  httpStatus,
+  attempts,
+  error,
+) {
   try {
     await dbRun(
       `INSERT INTO webhook_deliveries (id, user_id, url, status, http_status, attempts, error, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [uuidv4(), userId || null, url, status, httpStatus, attempts, error, new Date().toISOString()],
+      [
+        uuidv4(),
+        userId || null,
+        url,
+        status,
+        httpStatus,
+        attempts,
+        error,
+        new Date().toISOString(),
+      ],
     );
 
     await dbRun(
@@ -1975,7 +2956,9 @@ async function recordWebhookDelivery(userId, url, status, httpStatus, attempts, 
       [MAX_WEBHOOK_LOG_ENTRIES],
     );
   } catch (dbError) {
-    logger.warn("Gagal mencatat log pengiriman webhook", { error: dbError.message });
+    logger.warn("Gagal mencatat log pengiriman webhook", {
+      error: dbError.message,
+    });
   }
 }
 
@@ -1999,7 +2982,13 @@ async function dispatchUserWebhook(sessionId, payload) {
     return;
   }
 
-  await postWebhook(owner.webhookUrl, owner.webhookSecret, payload, "Webhook user", owner.id);
+  await postWebhook(
+    owner.webhookUrl,
+    owner.webhookSecret,
+    payload,
+    "Webhook user",
+    owner.id,
+  );
 }
 
 function extractIncomingText(message) {
@@ -2018,7 +3007,10 @@ function extractIncomingText(message) {
 // Inbox pesan masuk + balas otomatis berbasis keyword milik user.
 // ---------------------------------------------------------------------------
 
-const MAX_INBOX_ENTRIES = Math.max(100, Number(process.env.MAX_INBOX_ENTRIES || 2000));
+const MAX_INBOX_ENTRIES = Math.max(
+  100,
+  Number(process.env.MAX_INBOX_ENTRIES || 2000),
+);
 
 // Isi placeholder {{nama}} / {{nomor}} dst pada template & balasan otomatis.
 // Placeholder yang tidak dikenal dibiarkan apa adanya supaya user sadar kalau
@@ -2026,12 +3018,16 @@ const MAX_INBOX_ENTRIES = Math.max(100, Number(process.env.MAX_INBOX_ENTRIES || 
 function renderTemplateContent(content, vars) {
   return String(content || "").replace(/\{\{\s*(\w+)\s*\}\}/g, (full, key) => {
     const value = vars[String(key).toLowerCase()];
-    return value === undefined || value === null || value === "" ? full : String(value);
+    return value === undefined || value === null || value === ""
+      ? full
+      : String(value);
   });
 }
 
 function matchesAutoReplyRule(rule, normalizedText) {
-  const keyword = String(rule.keyword || "").trim().toLowerCase();
+  const keyword = String(rule.keyword || "")
+    .trim()
+    .toLowerCase();
   if (!keyword) {
     return false;
   }
@@ -2128,7 +3124,9 @@ async function storeIncomingAndAutoReply(session, msg, payload) {
   if (ownerUserId) {
     const usedToday = await countUserMessagesToday(ownerUserId);
     if (usedToday >= ownerPublic.dailyMessageLimit) {
-      logger.warn("Auto-reply dilewati: kuota harian user habis", { user: owner.username });
+      logger.warn("Auto-reply dilewati: kuota harian user habis", {
+        user: owner.username,
+      });
       return;
     }
   }
@@ -2138,34 +3136,61 @@ async function storeIncomingAndAutoReply(session, msg, payload) {
     nomor: String(payload.from || "").split("@")[0],
   });
 
+  // Lampiran (kalau ada) dibaca dari disk tiap kali dipicu — bukan di-cache
+  // di memori, supaya perubahan file lewat edit rule langsung kepakai tanpa
+  // perlu restart server.
+  let content = { text: replyText };
+  if (matched.mediaPath) {
+    try {
+      const buffer = await fs.promises.readFile(matched.mediaPath);
+      content = buildMediaMessage(
+        {
+          buffer,
+          mimetype: matched.mediaMimetype,
+          originalname: matched.mediaFilename,
+        },
+        replyText,
+      );
+    } catch (error) {
+      logger.warn("Gagal baca lampiran auto-reply, kirim teks saja", {
+        ruleId: matched.id,
+        mediaPath: matched.mediaPath,
+        error: error.message,
+      });
+    }
+  }
+
   try {
     const { result } = await enqueueMessageSend(session, {
       jid: payload.from,
-      content: { text: replyText },
+      content,
     });
 
-    await dbRun("UPDATE incoming_messages SET auto_replied = 1 WHERE message_id = ? AND session_id = ?", [
-      payload.messageId || null,
-      session.id,
-    ]);
+    await dbRun(
+      "UPDATE incoming_messages SET auto_replied = 1 WHERE message_id = ? AND session_id = ?",
+      [payload.messageId || null, session.id],
+    );
 
     await recordHistory({
       source: "auto_reply",
       sessionId: session.id,
       to: payload.fromMasked,
-      type: "text",
+      type: matched.mediaPath ? "media" : "text",
       message: replyText.slice(0, 120),
       status: "sent",
       messageId: result?.key?.id,
     });
 
-    logger.info("Balas otomatis terkirim", { session: session.id, keyword: matched.keyword });
+    logger.info("Balas otomatis terkirim", {
+      session: session.id,
+      keyword: matched.keyword,
+    });
   } catch (error) {
     await recordHistory({
       source: "auto_reply",
       sessionId: session.id,
       to: payload.fromMasked,
-      type: "text",
+      type: matched.mediaPath ? "media" : "text",
       message: replyText.slice(0, 120),
       status: "failed",
       error: error.message,
@@ -2206,7 +3231,9 @@ async function processScheduledMessages() {
 
         const usedToday = await countUserMessagesToday(job.ownerUserId);
         if (usedToday >= owner.dailyMessageLimit) {
-          throw new Error(`Kuota harian pemilik sudah habis (${usedToday}/${owner.dailyMessageLimit})`);
+          throw new Error(
+            `Kuota harian pemilik sudah habis (${usedToday}/${owner.dailyMessageLimit})`,
+          );
         }
       }
 
@@ -2215,14 +3242,21 @@ async function processScheduledMessages() {
       if (job.file) {
         const buffer = fs.readFileSync(job.file.path);
         content = buildMediaMessage(
-          { buffer, mimetype: job.file.mimetype, originalname: job.file.fileName },
+          {
+            buffer,
+            mimetype: job.file.mimetype,
+            originalname: job.file.fileName,
+          },
           job.message,
         );
       } else {
         content = { text: job.message };
       }
 
-      const { result } = await enqueueMessageSend(session, { jid: job.jid, content });
+      const { result } = await enqueueMessageSend(session, {
+        jid: job.jid,
+        content,
+      });
 
       await updateScheduledJob(job.id, {
         status: "sent",
@@ -2240,7 +3274,10 @@ async function processScheduledMessages() {
         messageId: result?.key?.id,
       });
 
-      logger.info("Pesan terjadwal terkirim", { id: job.id, to: maskDestination(job.jid) });
+      logger.info("Pesan terjadwal terkirim", {
+        id: job.id,
+        to: maskDestination(job.jid),
+      });
     } catch (error) {
       await updateScheduledJob(job.id, {
         status: "failed",
@@ -2338,7 +3375,13 @@ app.use(
   }),
 );
 
-const DASHBOARD_API_PATHS = new Set(["/status", "/qr", "/logout", "/test-chat", "/sessions"]);
+const DASHBOARD_API_PATHS = new Set([
+  "/status",
+  "/qr",
+  "/logout",
+  "/test-chat",
+  "/sessions",
+]);
 
 app.use("/api", (req, res, next) => {
   // /api/auth/*, /api/admin/*, /api/my/*, dan /api/external/* punya
@@ -2355,7 +3398,15 @@ app.use("/api", (req, res, next) => {
   ) {
     return next();
   }
-  return requireApiKey(req, res, next);
+  const cookies = parseCookies(req);
+  return findWebSession(cookies.wa_admin_sid, "admin")
+    .then((session) => {
+      if (session) {
+        return next();
+      }
+      return requireApiKey(req, res, next);
+    })
+    .catch(next);
 });
 
 const DEFAULT_SESSION_ID = "default";
@@ -2424,8 +3475,11 @@ function getDefaultSession() {
 }
 
 function resolveSessionOrRespond(req, res) {
-  const requestedId = (req.body && req.body.session) || req.query.session || DEFAULT_SESSION_ID;
-  const session = sessions.get(requestedId) || (requestedId === DEFAULT_SESSION_ID ? getDefaultSession() : null);
+  const requestedId =
+    (req.body && req.body.session) || req.query.session || DEFAULT_SESSION_ID;
+  const session =
+    sessions.get(requestedId) ||
+    (requestedId === DEFAULT_SESSION_ID ? getDefaultSession() : null);
 
   if (!session) {
     res.status(404).json({
@@ -2464,7 +3518,12 @@ async function bootstrapSessions() {
   for (const entry of registry) {
     sessions.set(
       entry.id,
-      createSessionRuntime(entry.id, entry.name, entry.authDir, entry.createdAt),
+      createSessionRuntime(
+        entry.id,
+        entry.name,
+        entry.authDir,
+        entry.createdAt,
+      ),
     );
     await dbRun(insertSessionSql, {
       id: entry.id,
@@ -2477,7 +3536,9 @@ async function bootstrapSessions() {
 
 async function addSession(name) {
   if (sessions.size >= MAX_ACCOUNTS) {
-    throw new Error(`Batas maksimum ${MAX_ACCOUNTS} akun WhatsApp sudah tercapai`);
+    throw new Error(
+      `Batas maksimum ${MAX_ACCOUNTS} akun WhatsApp sudah tercapai`,
+    );
   }
 
   const id = uuidv4().split("-")[0];
@@ -2652,6 +3713,72 @@ const upload = multer({
   limits: { fileSize: MAX_FILE_SIZE_BYTES },
 });
 
+// Dipakai route yang terima file lewat multipart form-data + butuh pesan
+// error seragam (ukuran file kelebihan dst) — pola yang sama dipakai
+// berulang di /api/schedule dkk, dibungkus di sini biar tidak diulang manual
+// di tiap route auto-reply yang sekarang juga terima lampiran.
+function uploadSingleFileMiddleware(fieldName) {
+  return (req, res, next) => {
+    upload.single(fieldName)(req, res, (err) => {
+      if (err) {
+        const message =
+          err.code === "LIMIT_FILE_SIZE"
+            ? `Ukuran file melebihi batas ${Math.round(MAX_FILE_SIZE_BYTES / 1024 / 1024)}MB`
+            : err.message;
+        return res
+          .status(400)
+          .json({ success: false, message, requestId: req.id });
+      }
+      return next();
+    });
+  };
+}
+
+// FormData (multipart) mengirim boolean sebagai string ("true"/"false") atau
+// tidak mengirim field sama sekali — beda arti dari boolean asli (dari body
+// JSON). Return null berarti "field tidak dikirim, jangan diubah".
+function parseBooleanField(value) {
+  if (value === undefined) {
+    return null;
+  }
+  if (typeof value === "boolean") {
+    return value;
+  }
+  return ["true", "1", "on"].includes(String(value).toLowerCase());
+}
+
+// Lampiran aturan balas otomatis disimpan ke disk (bukan in-memory seperti
+// broadcast/kirim-langsung) karena aturan ini dipakai berulang kali & harus
+// bertahan lintas restart server — sama polanya dengan SCHEDULED_UPLOADS_DIR.
+async function saveAutoReplyMedia(ruleId, file) {
+  const storedPath = path.join(
+    AUTO_REPLY_UPLOADS_DIR,
+    `${ruleId}-${Date.now()}-${file.originalname}`,
+  );
+  await fs.promises.writeFile(storedPath, file.buffer);
+  return {
+    path: storedPath,
+    mimetype: file.mimetype,
+    fileName: file.originalname,
+  };
+}
+
+async function deleteAutoReplyMediaFile(mediaPath) {
+  if (!mediaPath) {
+    return;
+  }
+  try {
+    await fs.promises.unlink(mediaPath);
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      logger.warn("Gagal menghapus file lampiran auto-reply", {
+        mediaPath,
+        error: error.message,
+      });
+    }
+  }
+}
+
 function buildMediaMessage(file, caption) {
   const mimetype = file.mimetype || "application/octet-stream";
   const fileName = file.originalname || "file";
@@ -2813,7 +3940,10 @@ function scheduleReconnect(session, context) {
 }
 
 function processSendQueue(session) {
-  while (session.activeSendCount < SEND_CONCURRENCY && session.sendQueue.length > 0) {
+  while (
+    session.activeSendCount < SEND_CONCURRENCY &&
+    session.sendQueue.length > 0
+  ) {
     const task = session.sendQueue.shift();
     session.activeSendCount += 1;
 
@@ -2821,22 +3951,22 @@ function processSendQueue(session) {
       const queueDelayMs = Date.now() - task.enqueuedAt;
 
       if (
-          !session.sock ||
-          !session.isConnected ||
-          !session.sock.user ||
-          !session.sock.ws?.isOpen
+        !session.sock ||
+        !session.isConnected ||
+        !session.sock.user ||
+        !session.sock.ws?.isOpen
       ) {
-          const notConnectedError = new Error("WhatsApp belum terhubung");
-          notConnectedError.code = "NOT_CONNECTED";
-          throw notConnectedError;
+        const notConnectedError = new Error("WhatsApp belum terhubung");
+        notConnectedError.code = "NOT_CONNECTED";
+        throw notConnectedError;
       }
 
       const sendStartedAt = Date.now();
 
       const result = await withTimeout(
-          session.sock.sendMessage(task.jid, task.content),
-          MESSAGE_TIMEOUT_MS,
-          "Pengiriman pesan"
+        session.sock.sendMessage(task.jid, task.content),
+        MESSAGE_TIMEOUT_MS,
+        "Pengiriman pesan",
       );
 
       return {
@@ -2847,19 +3977,21 @@ function processSendQueue(session) {
     })()
       .then(task.resolve)
       .catch((err) => {
-          if (err.message.includes("timeout")) {
-              logger.warn("Send timeout, reconnecting WhatsApp", { session: session.id });
+        if (err.message.includes("timeout")) {
+          logger.warn("Send timeout, reconnecting WhatsApp", {
+            session: session.id,
+          });
 
-              session.isConnected = false;
+          session.isConnected = false;
 
-              try {
-                  session.sock?.end?.();
-              } catch {}
+          try {
+            session.sock?.end?.();
+          } catch {}
 
-              scheduleReconnect(session, "send_timeout");
-          }
+          scheduleReconnect(session, "send_timeout");
+        }
 
-          task.reject(err);
+        task.reject(err);
       })
       .finally(() => {
         session.activeSendCount -= 1;
@@ -2892,12 +4024,22 @@ async function updateQrCode(session, qr) {
     width: 256,
   });
   session.qrUpdatedAt = Date.now();
+  void publishRealtimeEvent("session.updated", {
+    sessionId: session.id,
+    status: "qr_ready",
+    connected: false,
+    hasQR: true,
+    qrUpdatedAt: session.qrUpdatedAt,
+  });
 }
 
 async function removeAuthStateDirectory(session) {
   const authDirPath = assertSafeAuthDirPath(getAuthDirPath(session));
   await fs.promises.rm(authDirPath, { recursive: true, force: true });
-  logger.info("Folder auth WhatsApp dihapus", { session: session.id, authDir: authDirPath });
+  logger.info("Folder auth WhatsApp dihapus", {
+    session: session.id,
+    authDir: authDirPath,
+  });
 }
 
 async function logoutAndRotateAccount(session, reqId) {
@@ -2944,7 +4086,8 @@ async function logoutAndRotateAccount(session, reqId) {
 
     session.lastConnectionState = "logged_out";
     session.lastDisconnectReason = DisconnectReason.loggedOut;
-    session.lastDisconnectMessage = "Sesi lama dihapus. Silakan scan akun baru.";
+    session.lastDisconnectMessage =
+      "Sesi lama dihapus. Silakan scan akun baru.";
 
     logger.info(`[${reqId}] Sesi WhatsApp direset untuk ganti akun`, {
       session: session.id,
@@ -2972,15 +4115,24 @@ async function connectToWhatsApp(session) {
   const currentGeneration = ++session.socketGeneration;
 
   try {
-    logger.info("Memulai koneksi WhatsApp", { session: session.id, authDir: session.authDir });
+    logger.info("Memulai koneksi WhatsApp", {
+      session: session.id,
+      authDir: session.authDir,
+    });
 
-    const { state, saveCreds } = await useMultiFileAuthState(getAuthDirPath(session));
+    const { state, saveCreds } = await useMultiFileAuthState(
+      getAuthDirPath(session),
+    );
     const { version, isLatest } = await fetchLatestBaileysVersion();
 
-    logger.info("Versi WA Web dipakai", { session: session.id, version, isLatest });
+    logger.info("Versi WA Web dipakai", {
+      session: session.id,
+      version,
+      isLatest,
+    });
 
     const sock = makeWASocket({
-      version,                    // add this line
+      version, // add this line
       auth: state,
       logger: pino({ level: "silent" }),
       printQRInTerminal: false,
@@ -3027,6 +4179,12 @@ async function connectToWhatsApp(session) {
         session.lastDisconnectMessage = null;
 
         logger.info("WhatsApp terhubung", { session: session.id });
+        void publishRealtimeEvent("session.updated", {
+          sessionId: session.id,
+          status: "open",
+          connected: true,
+          hasQR: false,
+        });
         return;
       }
 
@@ -3050,14 +4208,21 @@ async function connectToWhatsApp(session) {
       session.qrUpdatedAt = Date.now();
       session.lastConnectionState = "closed";
       session.lastDisconnectReason = reason || "unknown";
-      session.lastDisconnectMessage = disconnectError?.message || "Connection closed";
+      session.lastDisconnectMessage =
+        disconnectError?.message || "Connection closed";
 
       logger.error("Koneksi WhatsApp terputus", {
-          session: session.id,
-          reason,
-          shouldReconnect,
-          disconnect: lastDisconnect,
-          error: disconnectError,
+        session: session.id,
+        reason,
+        shouldReconnect,
+        disconnect: lastDisconnect,
+        error: disconnectError,
+      });
+      void publishRealtimeEvent("session.updated", {
+        sessionId: session.id,
+        status: "closed",
+        connected: false,
+        hasQR: false,
       });
 
       if (shouldReconnect) {
@@ -3065,7 +4230,9 @@ async function connectToWhatsApp(session) {
       } else {
         session.reconnectAttempt = 0;
         clearReconnectTimer(session);
-        logger.error("Sesi WhatsApp logout, perlu scan ulang", { session: session.id });
+        logger.error("Sesi WhatsApp logout, perlu scan ulang", {
+          session: session.id,
+        });
 
         // Putus permanen (logged out / 401) — reconnect otomatis TIDAK jalan,
         // jadi akunnya diam-diam mati sampai ada yang scan ulang. Kabari
@@ -3116,40 +4283,47 @@ async function connectToWhatsApp(session) {
         }
 
         dispatchUserWebhook(session.id, webhookPayload).catch((error) => {
-          logger.warn("Gagal mengirim webhook user", { session: session.id, error: error.message });
+          logger.warn("Gagal mengirim webhook user", {
+            session: session.id,
+            error: error.message,
+          });
         });
 
         // Simpan ke inbox + jalankan aturan balas otomatis milik pemilik akun.
         // Sengaja fire-and-forget: kegagalan di sini tidak boleh menghambat
         // pemrosesan pesan masuk berikutnya.
-        storeIncomingAndAutoReply(session, msg, webhookPayload).catch((error) => {
-          logger.warn("Gagal memproses inbox/auto-reply", {
-            session: session.id,
-            error: error.message,
-          });
-        });
+        storeIncomingAndAutoReply(session, msg, webhookPayload).catch(
+          (error) => {
+            logger.warn("Gagal memproses inbox/auto-reply", {
+              session: session.id,
+              error: error.message,
+            });
+          },
+        );
 
-        handlePaymentBotMessage(session, msg.key.remoteJid, text).catch((error) => {
-          logger.warn("Gagal memproses auto-reply pembayaran", {
-            session: session.id,
-            error: error.message,
-          });
-        });
+        handlePaymentBotMessage(session, msg.key.remoteJid, text).catch(
+          (error) => {
+            logger.warn("Gagal memproses auto-reply pembayaran", {
+              session: session.id,
+              error: error.message,
+            });
+          },
+        );
       }
     });
 
     sock.ws.on("close", () => {
-        logger.warn("WebSocket closed", { session: session.id });
-        session.isConnected = false;
+      logger.warn("WebSocket closed", { session: session.id });
+      session.isConnected = false;
     });
 
     sock.ws.on("error", (err) => {
-        logger.error("WebSocket error", {
-            session: session.id,
-            error: err.message,
-        });
+      logger.error("WebSocket error", {
+        session: session.id,
+        error: err.message,
+      });
 
-        session.isConnected = false;
+      session.isConnected = false;
     });
   } catch (error) {
     session.isConnecting = false;
@@ -3176,6 +4350,150 @@ function renderBrandMark() {
     </svg>
 </span>`;
 }
+
+function renderSidebarToggleHead(sidebarId) {
+  return `<style>
+        @media (min-width: 640px) {
+            #${sidebarId} { overflow-x: hidden; transition: width 0.2s ease, transform 0.2s ease; }
+            html.sb-collapsed #${sidebarId} { width: 4.5rem !important; }
+            html.sb-collapsed #${sidebarId} > p { display: none; }
+            html.sb-collapsed #${sidebarId} > div:first-child { justify-content: center; padding-left: 0; padding-right: 0; }
+            html.sb-collapsed #${sidebarId} > div:first-child .min-w-0 { display: none; }
+            html.sb-collapsed #${sidebarId} nav > *,
+            html.sb-collapsed #${sidebarId} > div:last-child > * { font-size: 0 !important; justify-content: center; gap: 0; padding-left: 0; padding-right: 0; }
+            html.sb-collapsed #${sidebarId} nav .truncate { display: none; }
+        }
+    </style>
+    <script>try { if (localStorage.getItem('wag.sidebarCollapsed') === '1') document.documentElement.classList.add('sb-collapsed'); } catch (e) {}</script>`;
+}
+
+function renderSidebarToggleButton() {
+  return `<button id="sidebarToggle" type="button" class="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-100 sm:inline-flex" aria-label="Ciutkan sidebar" title="Ciutkan sidebar" aria-expanded="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+    </button>`;
+}
+
+const SIDEBAR_TOGGLE_SCRIPT = `<script>
+    (function () {
+        var root = document.documentElement;
+        var sidebar = document.getElementById('appSidebar') || document.getElementById('drawer');
+        var toggle = document.getElementById('sidebarToggle');
+        if (!sidebar || !toggle) return;
+
+        function isCollapsed() { return root.classList.contains('sb-collapsed') && window.innerWidth >= 640; }
+
+        // --- Flyout (tooltip label / submenu) untuk mode icon-only ---
+        var pop = document.createElement('div');
+        pop.className = 'fixed z-50 hidden';
+        document.body.appendChild(pop);
+        var pinned = null;
+
+        function hide() { pop.classList.add('hidden'); pop.textContent = ''; pinned = null; }
+        function labelOf(el) {
+            var t = el.querySelector('.truncate');
+            return ((t ? t.textContent : el.textContent) || '').trim();
+        }
+        function place(el) {
+            var r = el.getBoundingClientRect();
+            pop.style.left = (r.right + 10) + 'px';
+            pop.style.top = r.top + 'px';
+            var maxTop = window.innerHeight - pop.getBoundingClientRect().height - 8;
+            if (r.top > maxTop) pop.style.top = Math.max(8, maxTop) + 'px';
+        }
+        function showTip(el) {
+            pop.className = 'fixed z-50 pointer-events-none whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg';
+            pop.textContent = labelOf(el);
+            place(el);
+        }
+        function showMenu(el, entries) {
+            pop.className = 'fixed z-50 w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl';
+            pop.textContent = '';
+
+            var head = document.createElement('div');
+            head.className = 'flex items-center gap-3 border-b border-slate-100 pb-3';
+            var icon = document.createElement('span');
+            icon.className = 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white';
+            var svg = el.querySelector('svg');
+            if (svg) icon.appendChild(svg.cloneNode(true));
+            var titles = document.createElement('div');
+            titles.className = 'min-w-0';
+            var title = document.createElement('p');
+            title.className = 'truncate text-sm font-bold text-slate-900';
+            title.textContent = labelOf(el);
+            var sub = document.createElement('p');
+            sub.className = 'text-xs text-slate-400';
+            sub.textContent = 'Submenu';
+            titles.appendChild(title);
+            titles.appendChild(sub);
+            head.appendChild(icon);
+            head.appendChild(titles);
+            pop.appendChild(head);
+
+            var list = document.createElement('div');
+            list.className = 'mt-2 space-y-1';
+            entries.forEach(function (entry) {
+                var item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700';
+                item.textContent = entry.label;
+                item.addEventListener('click', function () {
+                    var target = document.querySelector('[data-page-tab="' + entry.tab + '"], [data-tab="' + entry.tab + '"]');
+                    hide();
+                    if (target) target.click();
+                });
+                list.appendChild(item);
+            });
+            pop.appendChild(list);
+            place(el);
+        }
+
+        var items = Array.prototype.slice.call(sidebar.querySelectorAll('nav > *'));
+        var footer = sidebar.lastElementChild;
+        if (footer && footer.tagName === 'DIV') items = items.concat(Array.prototype.slice.call(footer.children));
+
+        items.forEach(function (el) {
+            el.addEventListener('mouseenter', function () { if (isCollapsed() && !pinned) showTip(el); });
+            el.addEventListener('mouseleave', function () { if (!pinned) hide(); });
+            // Item dengan data-submenu='[{"label":"..","tab":".."}]' membuka flyout saat diklik (mode icon-only).
+            el.addEventListener('click', function (event) {
+                if (!isCollapsed()) return;
+                var raw = el.getAttribute('data-submenu');
+                if (!raw) { hide(); return; }
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                if (pinned === el) { hide(); return; }
+                var entries = [];
+                try { entries = JSON.parse(raw); } catch (e) {}
+                hide();
+                pinned = el;
+                showMenu(el, entries);
+            }, true);
+        });
+
+        document.addEventListener('mousedown', function (event) {
+            if (pinned && !pop.contains(event.target) && !pinned.contains(event.target)) hide();
+        });
+        document.addEventListener('keydown', function (event) { if (event.key === 'Escape') hide(); });
+        window.addEventListener('resize', hide);
+        Array.prototype.forEach.call(sidebar.querySelectorAll('nav'), function (n) { n.addEventListener('scroll', hide); });
+
+        // --- Toggle collapse ---
+        function sync() {
+            var collapsed = root.classList.contains('sb-collapsed');
+            var label = collapsed ? 'Perluas sidebar' : 'Ciutkan sidebar';
+            toggle.setAttribute('aria-expanded', String(!collapsed));
+            toggle.setAttribute('aria-label', label);
+            toggle.title = label;
+        }
+        sync();
+        toggle.addEventListener('click', function () {
+            var collapsed = root.classList.toggle('sb-collapsed');
+            try { localStorage.setItem('wag.sidebarCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+            hide();
+            sync();
+        });
+    })();
+</script>`;
 
 function renderEyeIcon() {
   return `<svg data-eye-open width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg><svg data-eye-closed class="hidden" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M6.61 6.61A18.42 18.42 0 0 0 1 12s4 8 11 8a9.26 9.26 0 0 0 5.39-1.61"/><path d="M1 1l22 22"/></svg>`;
@@ -3231,14 +4549,62 @@ function renderAdminLoginPage() {
             </div>
             <p id="adminLoginError" class="hidden text-xs font-medium text-red-600"></p>
             <button type="submit" class="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Masuk</button>
+            <button type="button" id="adminForgotPasswordLink" class="w-full text-center text-xs font-semibold text-emerald-600 hover:underline">Lupa password?</button>
         </form>
 
-        <p class="mt-4 text-center text-xs text-slate-400">Bukan admin? <a href="/app/login" class="font-semibold text-emerald-700 hover:underline">Login sebagai pengguna</a></p>
+        <form id="adminForgotForm" class="mt-5 hidden space-y-3">
+            <div data-forgot-step="request">
+                <label class="text-xs font-semibold text-slate-700">Username</label>
+                <input name="username" type="text" required class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+                <p class="mt-1.5 text-xs text-slate-400">Kode OTP akan dikirim ke WhatsApp nomor terdaftar admin ini (kalau sudah diisi lewat panel Kelola Admin).</p>
+            </div>
+            <div data-forgot-step="verify" class="hidden space-y-3">
+                <div>
+                    <label class="text-xs font-semibold text-slate-700">Kode OTP</label>
+                    <input name="otp" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="6 digit" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm tracking-widest focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-700">Password Baru</label>
+                    <div class="relative mt-1.5">
+                        <input id="adminForgotNewPassword" name="newPassword" type="password" minlength="6"
+                            class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 pr-10 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+                        <button type="button" data-toggle-password="adminForgotNewPassword" aria-label="Tampilkan password"
+                            class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-600">
+                            ${renderEyeIcon()}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button type="button" data-resend-otp disabled class="hidden w-full rounded-xl border border-emerald-200 py-2 text-xs font-semibold text-emerald-600 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-transparent">Kirim ulang OTP</button>
+            <p class="hidden text-xs font-medium text-emerald-600" data-forgot-info></p>
+            <p class="hidden text-xs font-medium text-red-600" data-auth-error></p>
+            <button type="submit" data-forgot-submit class="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition disabled:cursor-not-allowed disabled:bg-emerald-300">Kirim Kode OTP</button>
+            <button type="button" id="adminBackToLoginLink" class="w-full text-center text-xs font-semibold text-slate-500 hover:underline">Kembali ke login</button>
+        </form>
+
+        <form id="admin2faForm" class="mt-5 hidden space-y-3">
+            <p class="text-xs text-slate-500">Masukkan kode verifikasi yang dikirim ke WhatsApp nomor terdaftar akun ini.</p>
+            <div>
+                <label class="text-xs font-semibold text-slate-700">Kode Verifikasi</label>
+                <input name="otp" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="6 digit" required autofocus class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm tracking-widest focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+            </div>
+            <p id="admin2faError" class="hidden text-xs font-medium text-red-600"></p>
+            <button type="submit" class="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Verifikasi &amp; Masuk</button>
+            <button type="button" id="admin2faBackLink" class="w-full text-center text-xs font-semibold text-slate-500 hover:underline">Batal, kembali ke login</button>
+        </form>
+
+        <p id="adminLoginFooter" class="mt-4 text-center text-xs text-slate-400">Bukan admin? <a href="/app/login" class="font-semibold text-emerald-700 hover:underline">Login sebagai pengguna</a></p>
     </div>
 
 <script>
     ${TOGGLE_PASSWORD_SCRIPT}
-    document.getElementById('adminLoginForm').addEventListener('submit', async (event) => {
+    const adminLoginForm = document.getElementById('adminLoginForm');
+    const adminForgotForm = document.getElementById('adminForgotForm');
+    const admin2faForm = document.getElementById('admin2faForm');
+    const adminLoginFooter = document.getElementById('adminLoginFooter');
+    let admin2faPendingToken = '';
+
+    adminLoginForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const errorEl = document.getElementById('adminLoginError');
         errorEl.classList.add('hidden');
@@ -3254,12 +4620,259 @@ function renderAdminLoginPage() {
             });
             const data = await response.json();
             if (!response.ok || !data.success) throw new Error(data.message || 'Login gagal');
+
+            if (data.requiresTwoFactor) {
+                admin2faPendingToken = data.pendingToken;
+                adminLoginForm.classList.add('hidden');
+                adminLoginFooter.classList.add('hidden');
+                admin2faForm.classList.remove('hidden');
+                admin2faForm.reset();
+                document.getElementById('admin2faError').classList.add('hidden');
+                return;
+            }
+
             window.location.href = '/';
         } catch (error) {
             errorEl.textContent = error.message;
             errorEl.classList.remove('hidden');
         }
     });
+
+    admin2faForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const errorEl = document.getElementById('admin2faError');
+        errorEl.classList.add('hidden');
+
+        try {
+            const response = await fetch('/api/auth/admin/login/verify-2fa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pendingToken: admin2faPendingToken,
+                    otp: new FormData(admin2faForm).get('otp'),
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Verifikasi gagal');
+            window.location.href = '/';
+        } catch (error) {
+            errorEl.textContent = error.message;
+            errorEl.classList.remove('hidden');
+        }
+    });
+
+    document.getElementById('admin2faBackLink').addEventListener('click', () => {
+        admin2faPendingToken = '';
+        admin2faForm.classList.add('hidden');
+        adminLoginFooter.classList.remove('hidden');
+        adminLoginForm.classList.remove('hidden');
+    });
+
+    const adminVerifyStep = adminForgotForm.querySelector('[data-forgot-step="verify"]');
+    const adminForgotSubmit = adminForgotForm.querySelector('[data-forgot-submit]');
+    const adminResendOtpButton = adminForgotForm.querySelector('[data-resend-otp]');
+    let adminCooldownTimer = null;
+
+    function stopAdminCooldown() {
+        clearInterval(adminCooldownTimer);
+        adminCooldownTimer = null;
+        adminForgotSubmit.disabled = false;
+        adminForgotSubmit.textContent = adminVerifyStep.classList.contains('hidden') ? 'Kirim Kode OTP' : 'Reset Password';
+        adminResendOtpButton.disabled = false;
+        adminResendOtpButton.textContent = 'Kirim ulang OTP';
+    }
+
+    // Selama cooldown, tombol yang lagi "aktif" (submit di step username, atau
+    // tombol kirim-ulang di step OTP) dikunci + dikasih hitung mundur — supaya
+    // tidak bisa spam kirim OTP ke nomor WA yang sama.
+    function startAdminCooldown(seconds) {
+        clearInterval(adminCooldownTimer);
+        const onStepRequest = adminVerifyStep.classList.contains('hidden');
+        const target = onStepRequest ? adminForgotSubmit : adminResendOtpButton;
+        let remaining = Math.ceil(seconds);
+
+        target.disabled = true;
+        const tick = () => {
+            if (remaining <= 0) {
+                stopAdminCooldown();
+                return;
+            }
+            target.textContent = (onStepRequest ? 'Kirim Kode OTP' : 'Kirim ulang OTP') + ' (' + remaining + 's)';
+            remaining -= 1;
+        };
+        tick();
+        adminCooldownTimer = setInterval(tick, 1000);
+    }
+
+    async function submitAdminOtpRequest(username) {
+        const response = await fetch('/api/auth/admin/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username }),
+        });
+        const data = await response.json();
+        return { ok: response.ok, data };
+    }
+
+    function showAdminForgotForm() {
+        adminLoginForm.classList.add('hidden');
+        adminLoginFooter.classList.add('hidden');
+        adminForgotForm.classList.remove('hidden');
+        adminForgotForm.reset();
+        stopAdminCooldown();
+        adminForgotForm.querySelector('[data-forgot-step="request"]').classList.remove('hidden');
+        adminVerifyStep.classList.add('hidden');
+        adminForgotSubmit.textContent = 'Kirim Kode OTP';
+        adminResendOtpButton.classList.add('hidden');
+        adminForgotForm.querySelector('[data-forgot-info]').classList.add('hidden');
+        adminForgotForm.querySelector('[data-auth-error]').classList.add('hidden');
+    }
+
+    document.getElementById('adminForgotPasswordLink').addEventListener('click', showAdminForgotForm);
+    document.getElementById('adminBackToLoginLink').addEventListener('click', () => {
+        stopAdminCooldown();
+        adminForgotForm.classList.add('hidden');
+        adminLoginFooter.classList.remove('hidden');
+        adminLoginForm.classList.remove('hidden');
+    });
+
+    adminResendOtpButton.addEventListener('click', async () => {
+        const errorEl = adminForgotForm.querySelector('[data-auth-error]');
+        const infoEl = adminForgotForm.querySelector('[data-forgot-info]');
+        errorEl.classList.add('hidden');
+        infoEl.classList.add('hidden');
+
+        const username = adminForgotForm.querySelector('[name="username"]').value;
+        const { ok, data } = await submitAdminOtpRequest(username);
+        if (data.retryAfterSeconds) startAdminCooldown(data.retryAfterSeconds);
+
+        if (!ok || !data.success) {
+            errorEl.textContent = data.message || 'Gagal';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+        infoEl.textContent = data.message;
+        infoEl.classList.remove('hidden');
+    });
+
+    adminForgotForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const errorEl = adminForgotForm.querySelector('[data-auth-error]');
+        const infoEl = adminForgotForm.querySelector('[data-forgot-info]');
+        errorEl.classList.add('hidden');
+
+        const isVerifyStage = !adminVerifyStep.classList.contains('hidden');
+        const payload = {};
+        new FormData(adminForgotForm).forEach((value, key) => { payload[key] = value; });
+
+        if (!isVerifyStage) {
+            const { ok, data } = await submitAdminOtpRequest(payload.username);
+            if (data.retryAfterSeconds) startAdminCooldown(data.retryAfterSeconds);
+
+            if (!ok || !data.success) {
+                errorEl.textContent = data.message || 'Gagal';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            adminVerifyStep.classList.remove('hidden');
+            adminResendOtpButton.classList.remove('hidden');
+            infoEl.textContent = data.message;
+            infoEl.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/admin/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Gagal');
+
+            stopAdminCooldown();
+            infoEl.textContent = data.message + ' Mengalihkan ke halaman login...';
+            infoEl.classList.remove('hidden');
+            setTimeout(() => {
+                adminForgotForm.classList.add('hidden');
+                adminLoginFooter.classList.remove('hidden');
+                adminLoginForm.classList.remove('hidden');
+            }, 1500);
+        } catch (error) {
+            errorEl.textContent = error.message;
+            errorEl.classList.remove('hidden');
+        }
+    });
+</script>
+</body>
+</html>`;
+}
+
+function renderAdminOnlyLoginPage() {
+  return `<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Masuk — ${escapeHtml(APP_NAME)}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex min-h-full items-center justify-center bg-slate-100 px-4 py-8 text-slate-800">
+  <main class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <div class="flex items-center gap-3">
+      ${renderBrandMark()}
+      <div>
+        <p class="text-sm font-bold text-slate-900">${escapeHtml(APP_NAME)}</p>
+        <p class="text-xs text-slate-400">Admin Gateway</p>
+      </div>
+    </div>
+    <div class="mt-7">
+      <h1 class="text-xl font-bold text-slate-900">Masuk ke dashboard</h1>
+      <p class="mt-1 text-sm leading-relaxed text-slate-500">Gunakan URL website WhatsApp dan API key yang terdaftar di server.</p>
+    </div>
+    <form id="adminOnlyLoginForm" class="mt-6 space-y-4">
+      <div>
+        <label for="websiteUrl" class="text-xs font-semibold text-slate-700">URL Website WhatsApp</label>
+        <input id="websiteUrl" name="websiteUrl" type="url" required autocomplete="url" placeholder="https://wa.contoh.com" autofocus
+          class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+      </div>
+      <div>
+        <label for="apiKey" class="text-xs font-semibold text-slate-700">API Key</label>
+        <input id="apiKey" name="apiKey" type="password" required autocomplete="current-password"
+          class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+      </div>
+      <p id="adminOnlyLoginError" class="hidden text-xs font-medium text-red-600"></p>
+      <button type="submit" class="w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">Masuk</button>
+    </form>
+    <a href="/landing"
+      class="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+      Kembali ke Landing
+    </a>
+  </main>
+<script>
+  document.getElementById('adminOnlyLoginForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const errorEl = document.getElementById('adminOnlyLoginError');
+    errorEl.classList.add('hidden');
+    try {
+      const response = await fetch('/api/auth/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          websiteUrl: document.getElementById('websiteUrl').value,
+          apiKey: document.getElementById('apiKey').value,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || 'Login gagal');
+      window.location.href = '/';
+    } catch (error) {
+      errorEl.textContent = error.message;
+      errorEl.classList.remove('hidden');
+    }
+  });
 </script>
 </body>
 </html>`;
@@ -3307,6 +4920,37 @@ function renderUserLoginPage() {
             </div>
             <p class="hidden text-xs font-medium text-red-600" data-auth-error></p>
             <button type="submit" class="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Masuk</button>
+            <button type="button" id="forgotPasswordLink" class="w-full text-center text-xs font-semibold text-emerald-600 hover:underline">Lupa password?</button>
+        </form>
+
+        <form id="userForgotForm" class="mt-4 hidden space-y-3">
+            <div data-forgot-step="request">
+                <label class="text-xs font-semibold text-slate-700">Username</label>
+                <input name="username" type="text" required class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+                <p class="mt-1.5 text-xs text-slate-400">Kode OTP akan dikirim ke WhatsApp nomor terdaftar akun ini.</p>
+            </div>
+            <div data-forgot-step="verify" class="hidden space-y-3">
+                <div>
+                    <label class="text-xs font-semibold text-slate-700">Kode OTP</label>
+                    <input name="otp" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="6 digit" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm tracking-widest focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-700">Password Baru</label>
+                    <div class="relative mt-1.5">
+                        <input id="userForgotNewPassword" name="newPassword" type="password" minlength="6"
+                            class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 pr-10 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+                        <button type="button" data-toggle-password="userForgotNewPassword" aria-label="Tampilkan password"
+                            class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-600">
+                            ${renderEyeIcon()}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button type="button" data-resend-otp disabled class="hidden w-full rounded-xl border border-emerald-200 py-2 text-xs font-semibold text-emerald-600 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-transparent">Kirim ulang OTP</button>
+            <p class="hidden text-xs font-medium text-emerald-600" data-forgot-info></p>
+            <p class="hidden text-xs font-medium text-red-600" data-auth-error></p>
+            <button type="submit" data-forgot-submit class="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition disabled:cursor-not-allowed disabled:bg-emerald-300">Kirim Kode OTP</button>
+            <button type="button" id="backToLoginLink" class="w-full text-center text-xs font-semibold text-slate-500 hover:underline">Kembali ke login</button>
         </form>
 
         <form id="userRegisterForm" class="mt-4 hidden space-y-3">
@@ -3333,7 +4977,18 @@ function renderUserLoginPage() {
             <button type="submit" class="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Daftar</button>
         </form>
 
-        <p class="mt-4 text-center text-xs text-slate-400">Gratis 1 akun WAG. Butuh lebih? Hubungi admin setelah daftar.</p>
+        <form id="user2faForm" class="mt-4 hidden space-y-3">
+            <p class="text-xs text-slate-500">Masukkan kode verifikasi yang dikirim ke WhatsApp nomor terdaftar akun ini.</p>
+            <div>
+                <label class="text-xs font-semibold text-slate-700">Kode Verifikasi</label>
+                <input name="otp" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="6 digit" required autofocus class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm tracking-widest focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+            </div>
+            <p id="user2faError" class="hidden text-xs font-medium text-red-600"></p>
+            <button type="submit" class="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Verifikasi &amp; Masuk</button>
+            <button type="button" id="user2faBackLink" class="w-full text-center text-xs font-semibold text-slate-500 hover:underline">Batal, kembali ke login</button>
+        </form>
+
+        <p id="userAuthFooter" class="mt-4 text-center text-xs text-slate-400">Gratis 1 akun WAG. Butuh lebih? Hubungi admin setelah daftar.</p>
     </div>
 
 <script>
@@ -3341,6 +4996,11 @@ function renderUserLoginPage() {
     const authTabs = document.querySelectorAll('[data-auth-tab]');
     const loginForm = document.getElementById('userLoginForm');
     const registerForm = document.getElementById('userRegisterForm');
+    const forgotForm = document.getElementById('userForgotForm');
+    const user2faForm = document.getElementById('user2faForm');
+    const userAuthFooter = document.getElementById('userAuthFooter');
+    const authTabsBar = document.querySelector('[data-auth-tab="login"]').parentElement;
+    let user2faPendingToken = '';
 
     authTabs.forEach((tab) => {
         tab.addEventListener('click', () => {
@@ -3352,9 +5012,146 @@ function renderUserLoginPage() {
                 t.classList.toggle('text-slate-800', active);
                 t.classList.toggle('text-slate-500', !active);
             });
+            forgotForm.classList.add('hidden');
+            user2faForm.classList.add('hidden');
+            userAuthFooter.classList.remove('hidden');
+            authTabsBar.classList.remove('hidden');
             loginForm.classList.toggle('hidden', !isLogin);
             registerForm.classList.toggle('hidden', isLogin);
         });
+    });
+
+    const forgotVerifyStep = forgotForm.querySelector('[data-forgot-step="verify"]');
+    const forgotSubmit = forgotForm.querySelector('[data-forgot-submit]');
+    const resendOtpButton = forgotForm.querySelector('[data-resend-otp]');
+    let forgotCooldownTimer = null;
+
+    function stopForgotCooldown() {
+        clearInterval(forgotCooldownTimer);
+        forgotCooldownTimer = null;
+        forgotSubmit.disabled = false;
+        forgotSubmit.textContent = forgotVerifyStep.classList.contains('hidden') ? 'Kirim Kode OTP' : 'Reset Password';
+        resendOtpButton.disabled = false;
+        resendOtpButton.textContent = 'Kirim ulang OTP';
+    }
+
+    // Selama cooldown, tombol yang lagi "aktif" (submit di step username, atau
+    // tombol kirim-ulang di step OTP) dikunci + dikasih hitung mundur — supaya
+    // tidak bisa spam kirim OTP ke nomor WA yang sama.
+    function startForgotCooldown(seconds) {
+        clearInterval(forgotCooldownTimer);
+        const onStepRequest = forgotVerifyStep.classList.contains('hidden');
+        const target = onStepRequest ? forgotSubmit : resendOtpButton;
+        let remaining = Math.ceil(seconds);
+
+        target.disabled = true;
+        const tick = () => {
+            if (remaining <= 0) {
+                stopForgotCooldown();
+                return;
+            }
+            target.textContent = (onStepRequest ? 'Kirim Kode OTP' : 'Kirim ulang OTP') + ' (' + remaining + 's)';
+            remaining -= 1;
+        };
+        tick();
+        forgotCooldownTimer = setInterval(tick, 1000);
+    }
+
+    async function submitUserOtpRequest(username) {
+        const response = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username }),
+        });
+        const data = await response.json();
+        return { ok: response.ok, data };
+    }
+
+    function showForgotForm() {
+        loginForm.classList.add('hidden');
+        registerForm.classList.add('hidden');
+        authTabsBar.classList.add('hidden');
+        userAuthFooter.classList.add('hidden');
+        forgotForm.classList.remove('hidden');
+        forgotForm.reset();
+        stopForgotCooldown();
+        forgotForm.querySelector('[data-forgot-step="request"]').classList.remove('hidden');
+        forgotVerifyStep.classList.add('hidden');
+        forgotSubmit.textContent = 'Kirim Kode OTP';
+        resendOtpButton.classList.add('hidden');
+        forgotForm.querySelector('[data-forgot-info]').classList.add('hidden');
+        forgotForm.querySelector('[data-auth-error]').classList.add('hidden');
+    }
+
+    document.getElementById('forgotPasswordLink').addEventListener('click', showForgotForm);
+    document.getElementById('backToLoginLink').addEventListener('click', () => {
+        stopForgotCooldown();
+        document.querySelector('[data-auth-tab="login"]').click();
+    });
+
+    resendOtpButton.addEventListener('click', async () => {
+        const errorEl = forgotForm.querySelector('[data-auth-error]');
+        const infoEl = forgotForm.querySelector('[data-forgot-info]');
+        errorEl.classList.add('hidden');
+        infoEl.classList.add('hidden');
+
+        const username = forgotForm.querySelector('[name="username"]').value;
+        const { ok, data } = await submitUserOtpRequest(username);
+        if (data.retryAfterSeconds) startForgotCooldown(data.retryAfterSeconds);
+
+        if (!ok || !data.success) {
+            errorEl.textContent = data.message || 'Gagal';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+        infoEl.textContent = data.message;
+        infoEl.classList.remove('hidden');
+    });
+
+    forgotForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const errorEl = forgotForm.querySelector('[data-auth-error]');
+        const infoEl = forgotForm.querySelector('[data-forgot-info]');
+        errorEl.classList.add('hidden');
+
+        const isVerifyStage = !forgotVerifyStep.classList.contains('hidden');
+        const payload = {};
+        new FormData(forgotForm).forEach((value, key) => { payload[key] = value; });
+
+        if (!isVerifyStage) {
+            const { ok, data } = await submitUserOtpRequest(payload.username);
+            if (data.retryAfterSeconds) startForgotCooldown(data.retryAfterSeconds);
+
+            if (!ok || !data.success) {
+                errorEl.textContent = data.message || 'Gagal';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            forgotVerifyStep.classList.remove('hidden');
+            resendOtpButton.classList.remove('hidden');
+            infoEl.textContent = data.message;
+            infoEl.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Gagal');
+
+            stopForgotCooldown();
+            infoEl.textContent = data.message + ' Mengalihkan ke halaman login...';
+            infoEl.classList.remove('hidden');
+            setTimeout(() => document.querySelector('[data-auth-tab="login"]').click(), 1500);
+        } catch (error) {
+            errorEl.textContent = error.message;
+            errorEl.classList.remove('hidden');
+        }
     });
 
     function bindForm(form, url) {
@@ -3382,7 +5179,72 @@ function renderUserLoginPage() {
         });
     }
 
-    bindForm(loginForm, '/api/auth/login');
+    loginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const errorEl = loginForm.querySelector('[data-auth-error]');
+        errorEl.classList.add('hidden');
+
+        const payload = {};
+        new FormData(loginForm).forEach((value, key) => { payload[key] = value; });
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Gagal');
+
+            if (data.requiresTwoFactor) {
+                user2faPendingToken = data.pendingToken;
+                loginForm.classList.add('hidden');
+                authTabsBar.classList.add('hidden');
+                userAuthFooter.classList.add('hidden');
+                user2faForm.classList.remove('hidden');
+                user2faForm.reset();
+                document.getElementById('user2faError').classList.add('hidden');
+                return;
+            }
+
+            window.location.href = '/app';
+        } catch (error) {
+            errorEl.textContent = error.message;
+            errorEl.classList.remove('hidden');
+        }
+    });
+
+    user2faForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const errorEl = document.getElementById('user2faError');
+        errorEl.classList.add('hidden');
+
+        try {
+            const response = await fetch('/api/auth/login/verify-2fa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pendingToken: user2faPendingToken,
+                    otp: new FormData(user2faForm).get('otp'),
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Verifikasi gagal');
+            window.location.href = '/app';
+        } catch (error) {
+            errorEl.textContent = error.message;
+            errorEl.classList.remove('hidden');
+        }
+    });
+
+    document.getElementById('user2faBackLink').addEventListener('click', () => {
+        user2faPendingToken = '';
+        user2faForm.classList.add('hidden');
+        authTabsBar.classList.remove('hidden');
+        userAuthFooter.classList.remove('hidden');
+        loginForm.classList.remove('hidden');
+    });
+
     bindForm(registerForm, '/api/auth/register');
 </script>
 </body>
@@ -3397,10 +5259,11 @@ function renderUserPortalPage(user) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Portal Pengguna — ${escapeHtml(APP_NAME)}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    ${renderSidebarToggleHead("appSidebar")}
 </head>
 <body class="h-full overflow-hidden bg-slate-100 text-slate-800">
     <div class="flex h-full">
-        <aside class="hidden w-60 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white sm:flex">
+        <aside id="appSidebar" class="hidden w-60 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white sm:flex">
             <div class="flex items-center gap-2.5 border-b border-slate-200 px-5 py-4">
                 ${renderBrandMark()}
                 <div class="min-w-0">
@@ -3474,7 +5337,10 @@ function renderUserPortalPage(user) {
                     ${renderBrandMark()}
                     <p class="text-sm font-bold text-slate-900">${escapeHtml(APP_NAME)}</p>
                 </div>
-                <h1 id="pageTitle" class="hidden text-base font-semibold text-slate-800 sm:block">Akun WAG</h1>
+                <div class="hidden items-center gap-2.5 sm:flex">
+                    ${renderSidebarToggleButton()}
+                    <h1 id="pageTitle" class="text-base font-semibold text-slate-800">Akun WAG</h1>
+                </div>
                 <button id="userLogoutButtonMobile" type="button" class="inline-flex h-9 items-center justify-center rounded-lg bg-slate-100 px-4 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition sm:hidden">Keluar</button>
             </header>
 
@@ -3801,6 +5667,11 @@ function renderUserPortalPage(user) {
                                 <label class="text-xs font-semibold text-slate-700">Isi Balasan</label>
                                 <textarea id="autoReplyText" rows="3" required placeholder="Halo {{nama}}, ini daftar harga kami: ..."
                                     class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"></textarea>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-700">Lampiran (opsional)</label>
+                                <input id="autoReplyFile" type="file" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold">
+                                <p id="autoReplyCurrentFile" class="mt-1.5 hidden text-xs text-slate-500"></p>
                             </div>
                             <div class="flex gap-2">
                                 <button id="autoReplySubmitButton" type="submit" class="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Tambah Aturan</button>
@@ -5273,12 +7144,18 @@ function renderUserPortalPage(user) {
     // Form yang sama dipakai buat tambah DAN edit — jadi klik Edit tidak
     // membuka form/halaman baru (tetap di tempat, tidak nambah tinggi
     // halaman / scroll).
+    const autoReplyFile = document.getElementById('autoReplyFile');
+    const autoReplyCurrentFile = document.getElementById('autoReplyCurrentFile');
+    let autoReplyRemoveExistingMedia = false;
+
     function resetAutoReplyForm() {
         autoReplyEditingId.value = '';
         autoReplyForm.reset();
         autoReplyFormTitle.textContent = 'Balas Otomatis';
         autoReplySubmitButton.textContent = 'Tambah Aturan';
         autoReplyCancelEditButton.classList.add('hidden');
+        autoReplyCurrentFile.classList.add('hidden');
+        autoReplyRemoveExistingMedia = false;
     }
 
     function startEditAutoReply(rule) {
@@ -5287,6 +7164,24 @@ function renderUserPortalPage(user) {
         document.getElementById('autoReplyMatchType').value = rule.matchType;
         document.getElementById('autoReplyText').value = rule.replyText;
         autoReplySession.value = rule.sessionId || '';
+        autoReplyFile.value = '';
+        autoReplyRemoveExistingMedia = false;
+        if (rule.hasMedia) {
+            autoReplyCurrentFile.textContent = 'File saat ini: ' + rule.mediaFilename + ' — pilih file baru untuk mengganti, atau ';
+            const removeLink = document.createElement('a');
+            removeLink.href = '#';
+            removeLink.textContent = 'hapus lampiran';
+            removeLink.className = 'font-semibold text-red-600 hover:underline';
+            removeLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                autoReplyRemoveExistingMedia = true;
+                autoReplyCurrentFile.textContent = 'Lampiran akan dihapus setelah disimpan.';
+            });
+            autoReplyCurrentFile.appendChild(removeLink);
+            autoReplyCurrentFile.classList.remove('hidden');
+        } else {
+            autoReplyCurrentFile.classList.add('hidden');
+        }
         autoReplyFormTitle.textContent = 'Edit Aturan';
         autoReplySubmitButton.textContent = 'Simpan Perubahan';
         autoReplyCancelEditButton.classList.remove('hidden');
@@ -5299,23 +7194,20 @@ function renderUserPortalPage(user) {
         event.preventDefault();
         const editingId = autoReplyEditingId.value;
         try {
-            const payload = {
-                keyword: document.getElementById('autoReplyKeyword').value,
-                replyText: document.getElementById('autoReplyText').value,
-                matchType: document.getElementById('autoReplyMatchType').value,
-                sessionId: autoReplySession.value || '',
-            };
+            const formData = new FormData();
+            formData.set('keyword', document.getElementById('autoReplyKeyword').value);
+            formData.set('replyText', document.getElementById('autoReplyText').value);
+            formData.set('matchType', document.getElementById('autoReplyMatchType').value);
+            formData.set('sessionId', autoReplySession.value || '');
+            if (autoReplyFile.files[0]) {
+                formData.set('file', autoReplyFile.files[0]);
+            }
+            if (editingId && autoReplyRemoveExistingMedia) {
+                formData.set('removeMedia', 'true');
+            }
             const data = editingId
-                ? await apiJson('/api/my/auto-replies/' + editingId, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                })
-                : await apiJson('/api/my/auto-replies', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
+                ? await apiJson('/api/my/auto-replies/' + editingId, { method: 'PATCH', body: formData })
+                : await apiJson('/api/my/auto-replies', { method: 'POST', body: formData });
             showPanelAlert(autoReplyAlert, data.message, false);
             resetAutoReplyForm();
             await loadAutoReplies();
@@ -5337,7 +7229,8 @@ function renderUserPortalPage(user) {
                 '<div class="min-w-0">' +
                 '<p class="text-sm font-semibold text-slate-800">' + escapeHistoryHtml(r.keyword) +
                 ' <span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">' + (MATCH_LABELS[r.matchType] || r.matchType) + '</span>' +
-                (r.enabled ? '' : ' <span class="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-500">nonaktif</span>') + '</p>' +
+                (r.enabled ? '' : ' <span class="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-500">nonaktif</span>') +
+                (r.hasMedia ? ' <span class="ml-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-600">📎 lampiran</span>' : '') + '</p>' +
                 '<p class="mt-0.5 whitespace-pre-wrap break-words text-xs text-slate-500">' + escapeHistoryHtml(r.replyText) + '</p></div>' +
                 '<div class="flex shrink-0 gap-1.5">' +
                 '<button type="button" data-edit-reply="' + r.id + '" class="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-200 transition">Edit</button>' +
@@ -5459,6 +7352,7 @@ function renderUserPortalPage(user) {
     setInterval(loadInbox, pollIntervalMs);
     setInterval(loadSchedule, pollIntervalMs);
 </script>
+${SIDEBAR_TOGGLE_SCRIPT}
 </body>
 </html>`;
 }
@@ -5640,10 +7534,11 @@ function renderHomePage() {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${APP_NAME}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    ${renderSidebarToggleHead("appSidebar")}
 </head>
 <body class="h-full overflow-hidden bg-slate-100 text-slate-800">
     <div class="flex h-full">
-        <aside class="hidden w-60 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white sm:flex">
+        <aside id="appSidebar" class="hidden w-60 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white sm:flex">
             <div class="flex items-center gap-2.5 border-b border-slate-200 px-5 py-4">
                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -5692,19 +7587,13 @@ function renderHomePage() {
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     Pengaturan
                 </button>
-                <div class="my-2 border-t border-slate-100"></div>
-                <button type="button" data-page-tab="requests" class="page-tab flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                    Persetujuan
-                    <span id="pendingRequestsBadge" class="ml-auto hidden rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white"></span>
+                <button type="button" data-page-tab="activity-log" class="page-tab flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                    Log Aktivitas
                 </button>
-                <button type="button" data-page-tab="users" class="page-tab flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    Pengguna
-                </button>
-                <a href="/docs" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-600 transition hover:bg-slate-100">
+                <a href="/developers" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-600 transition hover:bg-slate-100">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                    API Documentation
+                    Developer Hub
                 </a>
             </nav>
 
@@ -5733,7 +7622,10 @@ function renderHomePage() {
                     <p class="text-sm font-bold text-slate-900">${APP_NAME}</p>
                     ${renderEnvBadge()}
                 </div>
-                <h1 id="pageTitle" class="hidden text-base font-semibold text-slate-800 sm:block">Dashboard</h1>
+                <div class="hidden items-center gap-2.5 sm:flex">
+                    ${renderSidebarToggleButton()}
+                    <h1 id="pageTitle" class="text-base font-semibold text-slate-800">Dashboard</h1>
+                </div>
                 <div id="statusBadge" class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-700 sm:text-sm">
                     Memeriksa status...
                 </div>
@@ -5767,6 +7659,22 @@ function renderHomePage() {
                     </div>
 
                     <p class="mt-4 text-xs leading-relaxed text-slate-400">Tombol <strong>Ganti Akun</strong> akan logout perangkat tertaut, menghapus sesi lama, lalu menyiapkan QR baru untuk akun tersebut. Tombol <strong>Hapus</strong> menghapus akun sepenuhnya dari daftar (minimal harus ada 1 akun aktif). Batas jumlah akun bisa diubah di tab Pengaturan.</p>
+
+                    <section class="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <h2 class="text-sm font-semibold text-slate-800">Statistik Pengiriman (semua akun)</h2>
+                            <select id="messageStatsRange" class="rounded-lg border border-slate-200 px-2 py-1 text-xs">
+                                <option value="7">7 hari terakhir</option>
+                                <option value="14" selected>14 hari terakhir</option>
+                                <option value="30">30 hari terakhir</option>
+                            </select>
+                        </div>
+                        <div id="messageStatsTotals" class="mt-3 grid gap-3 sm:grid-cols-2">
+                            <p class="text-sm text-slate-400 sm:col-span-2">Memuat...</p>
+                        </div>
+                        <div id="messageStatsChart" class="mt-4 flex h-32 items-end gap-1 border-b border-l border-slate-200 pb-1 pl-1"></div>
+                        <p class="mt-1.5 text-[11px] text-slate-400">Batang hijau = terkirim, merah = gagal.</p>
+                    </section>
 
                     <section class="mt-5 rounded-xl border border-slate-200 bg-white p-4">
                         <h2 class="text-sm font-semibold text-slate-800">Embed Widget QR</h2>
@@ -5818,16 +7726,7 @@ function renderHomePage() {
                 </section>
 
                 <section id="page-broadcast" class="page-panel mx-auto max-w-2xl hidden">
-                    <div id="broadcastGate" class="rounded-xl border border-slate-200 bg-white p-4">
-                        <label for="broadcastApiKey" class="block text-sm font-semibold text-slate-700">API Key</label>
-                        <p class="mt-1 text-xs text-slate-400">Dibutuhkan untuk mengirim broadcast. Tersimpan hanya di sesi browser ini.</p>
-                        <div class="mt-2 flex gap-2">
-                            <input id="broadcastApiKey" type="password" placeholder="Masukkan API key (kosongkan jika API_KEY belum diset)"
-                                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
-                            <button id="broadcastUnlockButton" type="button" class="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Buka</button>
-                        </div>
-                        <p id="broadcastGateError" class="mt-2 hidden text-xs font-medium text-red-600"></p>
-                    </div>
+                    <div id="broadcastGate" class="hidden"><input id="broadcastApiKey"><button id="broadcastUnlockButton" type="button"></button><p id="broadcastGateError"></p></div>
 
                     <div id="broadcastAlert" class="mt-4 hidden rounded-xl px-4 py-3 text-sm font-medium"></div>
 
@@ -5861,16 +7760,7 @@ function renderHomePage() {
                 </section>
 
                 <section id="page-schedule" class="page-panel mx-auto max-w-4xl hidden">
-                    <div id="scheduleGate" class="rounded-xl border border-slate-200 bg-white p-4">
-                        <label for="scheduleApiKey" class="block text-sm font-semibold text-slate-700">API Key</label>
-                        <p class="mt-1 text-xs text-slate-400">Dibutuhkan untuk membuat & melihat pesan terjadwal. Tersimpan hanya di sesi browser ini.</p>
-                        <div class="mt-2 flex gap-2">
-                            <input id="scheduleApiKey" type="password" placeholder="Masukkan API key (kosongkan jika API_KEY belum diset)"
-                                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
-                            <button id="scheduleUnlockButton" type="button" class="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Buka</button>
-                        </div>
-                        <p id="scheduleGateError" class="mt-2 hidden text-xs font-medium text-red-600"></p>
-                    </div>
+                    <div id="scheduleGate" class="hidden"><input id="scheduleApiKey"><button id="scheduleUnlockButton" type="button"></button><p id="scheduleGateError"></p></div>
 
                     <div id="schedulePanel" class="mt-4 hidden">
                         <div id="scheduleAlert" class="mb-4 hidden rounded-xl px-4 py-3 text-sm font-medium"></div>
@@ -5958,6 +7848,13 @@ function renderHomePage() {
                                     class="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
                             </div>
                         </div>
+                        <label class="mt-3 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <input id="twoFactorEnabledInput" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                            <span>
+                                <span class="block text-xs font-semibold text-slate-700">Aktifkan verifikasi 2 langkah (OTP WhatsApp) saat login</span>
+                                <span class="mt-0.5 block text-[11px] leading-relaxed text-slate-500">Berlaku untuk login admin maupun user — setelah username &amp; password benar, kode OTP wajib dimasukkan (dikirim ke nomor WA terdaftar) sebelum sesi dibuat. Akun (admin/user) yang belum punya nomor WA terdaftar tidak akan bisa login selama ini aktif.</span>
+                            </span>
+                        </label>
                         <button id="saveNotifyConfigButton" type="button" class="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-emerald-600 px-4 text-xs font-semibold text-white hover:bg-emerald-700 transition">Simpan</button>
                     </div>
 
@@ -6047,6 +7944,34 @@ function renderHomePage() {
                     </div>
                 </section>
 
+                <section id="page-activity-log" class="page-panel mx-auto max-w-4xl hidden">
+                    <div class="rounded-xl border border-slate-200 bg-white p-4">
+                        <div class="flex items-center justify-between gap-2">
+                            <div>
+                                <h2 class="text-sm font-semibold text-slate-800">Log Aktivitas Admin</h2>
+                                <p class="mt-1 text-xs text-slate-500">Jejak aktivitas admin (login, kelola admin, approve/reject akun, ubah paket, simpan pengaturan, dst). 100 aktivitas terbaru.</p>
+                            </div>
+                            <button type="button" id="refreshActivityLogButton" class="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-200 transition">Muat Ulang</button>
+                        </div>
+                        <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200">
+                            <table class="w-full text-sm">
+                                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left">Waktu</th>
+                                        <th class="px-4 py-2 text-left">Admin</th>
+                                        <th class="px-4 py-2 text-left">Aksi</th>
+                                        <th class="px-4 py-2 text-left">Detail</th>
+                                        <th class="px-4 py-2 text-left">IP</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activityLogTableBody" class="divide-y divide-slate-200">
+                                    <tr><td class="px-4 py-3 text-slate-400" colspan="5">Memuat...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
                 <section id="page-autoreply" class="page-panel mx-auto max-w-3xl hidden">
                     <div class="rounded-xl border border-slate-200 bg-white p-4">
                         <h2 id="adminAutoReplyFormTitle" class="text-sm font-semibold text-slate-800">Balas Otomatis</h2>
@@ -6082,6 +8007,11 @@ function renderHomePage() {
                                 <textarea id="adminAutoReplyText" rows="3" required placeholder="Halo {{nama}}, kami buka Senin-Sabtu jam 09.00-17.00"
                                     class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"></textarea>
                             </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-700">Lampiran (opsional)</label>
+                                <input id="adminAutoReplyFile" type="file" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold">
+                                <p id="adminAutoReplyCurrentFile" class="mt-1.5 hidden text-xs text-slate-500"></p>
+                            </div>
                             <div class="flex gap-2">
                                 <button id="adminAutoReplySubmitButton" type="submit" class="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Tambah Aturan</button>
                                 <button id="adminAutoReplyCancelEditButton" type="button" class="hidden shrink-0 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">Batal</button>
@@ -6098,16 +8028,7 @@ function renderHomePage() {
                 </section>
 
                 <section id="page-history" class="page-panel mx-auto flex h-full max-w-4xl flex-col hidden">
-                    <div id="historyGate" class="rounded-xl border border-slate-200 bg-white p-4">
-                        <label for="historyApiKey" class="block text-sm font-semibold text-slate-700">API Key</label>
-                        <p class="mt-1 text-xs text-slate-400">Dibutuhkan untuk melihat riwayat pengiriman. Tersimpan hanya di sesi browser ini.</p>
-                        <div class="mt-2 flex gap-2">
-                            <input id="historyApiKey" type="password" placeholder="Masukkan API key (kosongkan jika API_KEY belum diset)"
-                                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
-                            <button id="historyUnlockButton" type="button" class="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Buka</button>
-                        </div>
-                        <p id="historyGateError" class="mt-2 hidden text-xs font-medium text-red-600"></p>
-                    </div>
+                    <div id="historyGate" class="hidden"><input id="historyApiKey"><button id="historyUnlockButton" type="button"></button><p id="historyGateError"></p></div>
 
                     <div id="historyPanel" class="mt-4 flex min-h-0 flex-1 flex-col hidden">
                         <div class="flex items-center gap-2">
@@ -6135,16 +8056,7 @@ function renderHomePage() {
                 </section>
 
                 <section id="page-logs" class="page-panel mx-auto flex h-full max-w-4xl flex-col hidden">
-                    <div id="logsGate" class="rounded-xl border border-slate-200 bg-white p-4">
-                        <label for="logsApiKey" class="block text-sm font-semibold text-slate-700">API Key</label>
-                        <p class="mt-1 text-xs text-slate-400">Dibutuhkan untuk membaca log server. Tersimpan hanya di sesi browser ini.</p>
-                        <div class="mt-2 flex gap-2">
-                            <input id="logsApiKey" type="password" placeholder="Masukkan API key (kosongkan jika API_KEY belum diset)"
-                                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
-                            <button id="logsUnlockButton" type="button" class="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Buka</button>
-                        </div>
-                        <p id="logsGateError" class="mt-2 hidden text-xs font-medium text-red-600"></p>
-                    </div>
+                    <div id="logsGate" class="hidden"><input id="logsApiKey"><button id="logsUnlockButton" type="button"></button><p id="logsGateError"></p></div>
 
                     <div id="logsPanel" class="mt-4 flex min-h-0 flex-1 flex-col hidden">
                         <div class="flex flex-wrap items-center gap-2">
@@ -6167,16 +8079,7 @@ function renderHomePage() {
                 </section>
 
                 <section id="page-settings" class="page-panel mx-auto max-w-5xl hidden">
-                    <div id="settingsGate" class="rounded-xl border border-slate-200 bg-white p-4">
-                        <label for="settingsApiKey" class="block text-sm font-semibold text-slate-700">API Key</label>
-                        <p class="mt-1 text-xs text-slate-400">Dibutuhkan untuk membaca & menyimpan pengaturan .env. Tersimpan hanya di sesi browser ini.</p>
-                        <div class="mt-2 flex gap-2">
-                            <input id="settingsApiKey" type="password" placeholder="Masukkan API key (kosongkan jika API_KEY belum diset)"
-                                class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
-                            <button id="settingsUnlockButton" type="button" class="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 transition">Buka</button>
-                        </div>
-                        <p id="settingsGateError" class="mt-2 hidden text-xs font-medium text-red-600"></p>
-                    </div>
+                    <div id="settingsGate" class="hidden"><input id="settingsApiKey"><button id="settingsUnlockButton" type="button"></button><p id="settingsGateError"></p></div>
 
                     <div id="settingsAlert" class="mt-4 hidden rounded-xl px-4 py-3 text-sm font-medium"></div>
 
@@ -6215,15 +8118,17 @@ function renderHomePage() {
                                 <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                                     <tr>
                                         <th class="px-4 py-2 text-left">Username</th>
+                                        <th class="px-4 py-2 text-left">Nomor WA</th>
                                         <th class="px-4 py-2 text-left">Dibuat</th>
                                         <th class="px-4 py-2 text-left"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="adminsTableBody" class="divide-y divide-slate-200">
-                                    <tr><td class="px-4 py-3 text-slate-400" colspan="3">Memuat...</td></tr>
+                                    <tr><td class="px-4 py-3 text-slate-400" colspan="4">Memuat...</td></tr>
                                 </tbody>
                             </table>
                         </div>
+                        <p class="mt-2 text-xs text-slate-400">Nomor WA dipakai untuk kirim kode OTP kalau admin lupa password. Admin tanpa nomor WA tidak bisa pakai fitur "Lupa password" sampai nomornya diisi.</p>
 
                         <form id="addAdminForm" class="mt-4 flex flex-wrap items-end gap-2.5">
                             <div>
@@ -6236,6 +8141,11 @@ function renderHomePage() {
                                 <input id="newAdminPassword" type="password" required minlength="6" placeholder="Minimal 6 karakter"
                                     class="mt-1.5 w-48 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
                             </div>
+                            <div>
+                                <label for="newAdminPhone" class="text-xs font-semibold text-slate-700">Nomor WA (opsional)</label>
+                                <input id="newAdminPhone" type="text" placeholder="mis. 628123456789"
+                                    class="mt-1.5 w-44 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
+                            </div>
                             <button id="addAdminButton" type="submit" class="inline-flex h-9 items-center justify-center rounded-lg bg-emerald-600 px-4 text-xs font-semibold text-white hover:bg-emerald-700 transition">+ Tambah Admin</button>
                         </form>
                     </div>
@@ -6247,6 +8157,8 @@ function renderHomePage() {
     <script>
         const pollIntervalMs = ${STATUS_POLL_INTERVAL_MS};
         const publicBaseUrl = ${JSON.stringify(PUBLIC_BASE_URL)};
+        const centrifugoWsUrl = ${JSON.stringify(CENTRIFUGO_WS_URL)};
+        const centrifugoChannel = ${JSON.stringify(CENTRIFUGO_CHANNEL)};
         const statusBadge = document.getElementById('statusBadge');
         const accountsGrid = document.getElementById('accountsGrid');
         const accountsCount = document.getElementById('accountsCount');
@@ -6470,6 +8382,43 @@ function renderHomePage() {
         const copyEmbedButton = document.getElementById('copyEmbedButton');
         const embedLocalhostWarning = document.getElementById('embedLocalhostWarning');
 
+        // --- Statistik Pengiriman (grafik batang, sama gayanya dengan tab
+        // Statistik Penggunaan di portal user, tanpa library eksternal) ---
+        const messageStatsRange = document.getElementById('messageStatsRange');
+        const messageStatsTotals = document.getElementById('messageStatsTotals');
+        const messageStatsChart = document.getElementById('messageStatsChart');
+
+        async function loadMessageStats() {
+            try {
+                const response = await fetch('/api/admin/stats/messages?days=' + messageStatsRange.value, { cache: 'no-store' });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Gagal memuat statistik');
+
+                messageStatsTotals.innerHTML =
+                    '<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center"><p class="text-lg font-bold text-emerald-700">' + data.totals.sent + '</p><p class="text-xs text-emerald-600">Terkirim</p></div>' +
+                    '<div class="rounded-xl border border-red-200 bg-red-50 p-3 text-center"><p class="text-lg font-bold text-red-600">' + data.totals.failed + '</p><p class="text-xs text-red-500">Gagal</p></div>';
+
+                const peak = Math.max(1, ...data.daily.map((d) => Math.max(d.sent, d.failed)));
+                const barHeight = (value) => Math.round((value / peak) * 100);
+
+                messageStatsChart.innerHTML = data.daily.map((d) => {
+                    const label = d.date.slice(8) + '/' + d.date.slice(5, 7);
+                    const title = label + ' — terkirim ' + d.sent + ', gagal ' + d.failed;
+                    return '<div class="flex min-w-0 flex-1 flex-col items-center justify-end gap-0.5" title="' + title + '">' +
+                        '<div class="flex w-full items-end justify-center gap-px" style="height:100px">' +
+                        '<div class="w-1/2 rounded-t bg-emerald-500" style="height:' + barHeight(d.sent) + '%"></div>' +
+                        '<div class="w-1/2 rounded-t bg-red-400" style="height:' + barHeight(d.failed) + '%"></div>' +
+                        '</div>' +
+                        '<span class="truncate text-[9px] text-slate-400">' + label + '</span>' +
+                        '</div>';
+                }).join('');
+            } catch (error) {
+                messageStatsTotals.innerHTML = '<p class="text-sm text-red-600 sm:col-span-2">' + error.message + '</p>';
+            }
+        }
+
+        messageStatsRange.addEventListener('change', loadMessageStats);
+
         function buildEmbedSnippet() {
             const sessionId = embedSession.value || 'default';
             const base = publicBaseUrl || location.origin;
@@ -6517,8 +8466,7 @@ function renderHomePage() {
             history: 'Riwayat',
             logs: 'Logs',
             settings: 'Pengaturan',
-            requests: 'Persetujuan',
-            users: 'Pengguna',
+            'activity-log': 'Log Aktivitas',
         };
 
         const PAGE_TAB_IDS = Array.from(pageTabs).reduce((ids, tab) => {
@@ -6656,14 +8604,10 @@ function renderHomePage() {
             }
         });
 
-        // --- Shared helper: authenticated fetch using an API key kept in sessionStorage ---
+        // --- Shared helper: dashboard requests use the HttpOnly admin session ---
         function apiKeyFetch(url, storageKey, options) {
-            const key = sessionStorage.getItem(storageKey) || '';
             const headers = Object.assign({}, (options && options.headers) || {});
-            if (key) {
-                headers['x-api-key'] = key;
-            }
-            return fetch(url, Object.assign({}, options, { headers }));
+          return fetch(url, Object.assign({}, options, { headers, credentials: 'same-origin' }));
         }
 
         // --- Logs tab ---
@@ -6942,6 +8886,7 @@ function renderHomePage() {
         const addAdminForm = document.getElementById('addAdminForm');
         const newAdminUsername = document.getElementById('newAdminUsername');
         const newAdminPassword = document.getElementById('newAdminPassword');
+        const newAdminPhone = document.getElementById('newAdminPhone');
         let adminsCache = [];
 
         function showAdminsAlert(message, isError) {
@@ -6954,17 +8899,22 @@ function renderHomePage() {
 
         function renderAdminsTable() {
             if (!adminsCache.length) {
-                adminsTableBody.innerHTML = '<tr><td class="px-4 py-3 text-slate-400" colspan="3">Belum ada admin terdaftar.</td></tr>';
+                adminsTableBody.innerHTML = '<tr><td class="px-4 py-3 text-slate-400" colspan="4">Belum ada admin terdaftar.</td></tr>';
                 return;
             }
 
             adminsTableBody.innerHTML = adminsCache.map((admin) => {
                 const created = admin.createdAt ? new Date(admin.createdAt).toLocaleString('id-ID') : '-';
+                const phone = admin.phone
+                    ? '<span class="text-slate-600">' + admin.phone + '</span>'
+                    : '<span class="text-amber-600">Belum diisi</span>';
                 return '<tr>' +
                     '<td class="px-4 py-2 font-medium text-slate-700">' + admin.username + '</td>' +
+                    '<td class="px-4 py-2">' + phone + '</td>' +
                     '<td class="px-4 py-2 text-slate-500">' + created + '</td>' +
                     '<td class="px-4 py-2 text-right">' +
                     '<div class="flex justify-end gap-1.5">' +
+                    '<button type="button" data-admin-action="phone" data-id="' + admin.id + '" data-username="' + admin.username + '" data-phone="' + (admin.phone || '') + '" class="inline-flex h-7 items-center justify-center rounded-lg bg-slate-100 px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-200 transition">Ganti Nomor WA</button>' +
                     '<button type="button" data-admin-action="password" data-id="' + admin.id + '" data-username="' + admin.username + '" class="inline-flex h-7 items-center justify-center rounded-lg bg-slate-100 px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-200 transition">Ganti Password</button>' +
                     '<button type="button" data-admin-action="delete" data-id="' + admin.id + '" data-username="' + admin.username + '" class="inline-flex h-7 items-center justify-center rounded-lg bg-red-50 px-2.5 text-[11px] font-semibold text-red-600 hover:bg-red-100 transition">Hapus</button>' +
                     '</div>' +
@@ -6983,7 +8933,7 @@ function renderHomePage() {
                 adminsCache = data.entries;
                 renderAdminsTable();
             } catch (error) {
-                adminsTableBody.innerHTML = '<tr><td class="px-4 py-3 text-red-600" colspan="3">' + error.message + '</td></tr>';
+                adminsTableBody.innerHTML = '<tr><td class="px-4 py-3 text-red-600" colspan="4">' + error.message + '</td></tr>';
             }
         }
 
@@ -6992,6 +8942,7 @@ function renderHomePage() {
 
             const username = newAdminUsername.value.trim();
             const password = newAdminPassword.value;
+            const phone = newAdminPhone.value.trim();
             const button = document.getElementById('addAdminButton');
 
             button.disabled = true;
@@ -6999,7 +8950,7 @@ function renderHomePage() {
                 const response = await apiKeyFetch('/api/admins', 'wa_settings_key', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password }),
+                    body: JSON.stringify({ username, password, phone }),
                 });
                 const data = await response.json();
                 if (!response.ok || !data.success) {
@@ -7058,8 +9009,84 @@ function renderHomePage() {
                 } finally {
                     button.disabled = false;
                 }
+            } else if (action === 'phone') {
+                const currentPhone = button.dataset.phone || '';
+                const newPhone = window.prompt('Nomor WA untuk "' + username + '" (dipakai untuk kirim OTP lupa password), mis. 628123456789:', currentPhone);
+                if (newPhone === null) return;
+                button.disabled = true;
+                try {
+                    const response = await apiKeyFetch('/api/admins/' + id, 'wa_settings_key', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ phone: newPhone }),
+                    });
+                    const data = await response.json();
+                    if (!response.ok || !data.success) throw new Error(data.message || 'Gagal mengganti nomor WA');
+                    showAdminsAlert(data.message, false);
+                    await loadAdmins();
+                } catch (error) {
+                    showAdminsAlert(error.message, true);
+                } finally {
+                    button.disabled = false;
+                }
             }
         });
+
+        // --- Log Aktivitas ---
+        const activityLogTableBody = document.getElementById('activityLogTableBody');
+
+        function escapeHtmlClient(text) {
+            const div = document.createElement('div');
+            div.textContent = text == null ? '' : String(text);
+            return div.innerHTML;
+        }
+
+        const ACTIVITY_LOG_LABELS = {
+            admin_login: 'Login admin',
+            admin_created: 'Admin dibuat',
+            admin_password_changed: 'Password admin diubah',
+            admin_phone_changed: 'Nomor WA admin diubah',
+            admin_password_reset_via_otp: 'Password admin direset via OTP',
+            admin_deleted: 'Admin dihapus',
+            session_request_approved: 'Permintaan akun WAG di-approve',
+            session_request_rejected: 'Permintaan akun WAG ditolak',
+            session_deleted: 'Akun WhatsApp dihapus',
+            user_plan_updated: 'Paket user diubah',
+            user_deleted: 'User dihapus',
+            user_api_key_regenerated: 'API key user digenerate ulang',
+            config_updated: 'Konfigurasi disimpan',
+        };
+
+        async function loadAuditLog() {
+            activityLogTableBody.innerHTML = '<tr><td class="px-4 py-3 text-slate-400" colspan="5">Memuat...</td></tr>';
+            try {
+                const response = await fetch('/api/admin/audit-log', { cache: 'no-store' });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Gagal memuat log aktivitas');
+
+                if (!data.entries.length) {
+                    activityLogTableBody.innerHTML = '<tr><td class="px-4 py-3 text-slate-400" colspan="5">Belum ada aktivitas tercatat.</td></tr>';
+                    return;
+                }
+
+                activityLogTableBody.innerHTML = data.entries.map((entry) => {
+                    const time = entry.createdAt ? new Date(entry.createdAt).toLocaleString('id-ID') : '-';
+                    const action = ACTIVITY_LOG_LABELS[entry.action] || entry.action;
+                    const details = entry.details ? escapeHtmlClient(JSON.stringify(entry.details)) : '-';
+                    return '<tr>' +
+                        '<td class="px-4 py-2 text-slate-500 whitespace-nowrap">' + escapeHtmlClient(time) + '</td>' +
+                        '<td class="px-4 py-2 font-medium text-slate-700">' + escapeHtmlClient(entry.adminUsername) + '</td>' +
+                        '<td class="px-4 py-2 text-slate-700">' + escapeHtmlClient(action) + '</td>' +
+                        '<td class="px-4 py-2 text-slate-500 font-mono text-xs">' + details + '</td>' +
+                        '<td class="px-4 py-2 text-slate-400">' + escapeHtmlClient(entry.ip) + '</td>' +
+                        '</tr>';
+                }).join('');
+            } catch (error) {
+                activityLogTableBody.innerHTML = '<tr><td class="px-4 py-3 text-red-600" colspan="5">' + escapeHtmlClient(error.message) + '</td></tr>';
+            }
+        }
+
+        document.getElementById('refreshActivityLogButton').addEventListener('click', loadAuditLog);
 
         // --- Logout admin ---
         document.getElementById('adminLogoutButton').addEventListener('click', async () => {
@@ -7078,6 +9105,7 @@ function renderHomePage() {
         const adminNotifyPhoneInput = document.getElementById('adminNotifyPhoneInput');
         const planProPriceInput = document.getElementById('planProPriceInput');
         const planMaxPriceInput = document.getElementById('planMaxPriceInput');
+        const twoFactorEnabledInput = document.getElementById('twoFactorEnabledInput');
         const notifyConfigAlert = document.getElementById('notifyConfigAlert');
         const saveNotifyConfigButton = document.getElementById('saveNotifyConfigButton');
         const danaNumberInput = document.getElementById('danaNumberInput');
@@ -7183,6 +9211,7 @@ function renderHomePage() {
                 adminNotifyPhoneInput.value = data.config.adminNotifyPhone || '';
                 planProPriceInput.value = data.plans.pro.price || '';
                 planMaxPriceInput.value = data.plans.max.price || '';
+                twoFactorEnabledInput.checked = Boolean(data.config.twoFactorEnabled);
             } catch (error) {
                 showRequestsAlert(error.message, true);
             }
@@ -7199,6 +9228,7 @@ function renderHomePage() {
                         adminNotifyPhone: adminNotifyPhoneInput.value.trim(),
                         planProPrice: planProPriceInput.value,
                         planMaxPrice: planMaxPriceInput.value,
+                        twoFactorEnabled: twoFactorEnabledInput.checked,
                     }),
                 });
                 const data = await response.json();
@@ -7449,12 +9479,18 @@ function renderHomePage() {
             setTimeout(() => adminAutoReplyAlert.classList.add('hidden'), 5000);
         }
 
+        const adminAutoReplyFile = document.getElementById('adminAutoReplyFile');
+        const adminAutoReplyCurrentFile = document.getElementById('adminAutoReplyCurrentFile');
+        let adminAutoReplyRemoveExistingMedia = false;
+
         function resetAdminAutoReplyForm() {
             adminAutoReplyEditingId.value = '';
             adminAutoReplyForm.reset();
             adminAutoReplyFormTitle.textContent = 'Balas Otomatis';
             adminAutoReplySubmitButton.textContent = 'Tambah Aturan';
             adminAutoReplyCancelEditButton.classList.add('hidden');
+            adminAutoReplyCurrentFile.classList.add('hidden');
+            adminAutoReplyRemoveExistingMedia = false;
         }
 
         function startEditAdminAutoReply(rule) {
@@ -7463,6 +9499,24 @@ function renderHomePage() {
             document.getElementById('adminAutoReplyMatchType').value = rule.matchType;
             document.getElementById('adminAutoReplyText').value = rule.replyText;
             adminAutoReplySession.value = rule.sessionId || '';
+            adminAutoReplyFile.value = '';
+            adminAutoReplyRemoveExistingMedia = false;
+            if (rule.hasMedia) {
+                adminAutoReplyCurrentFile.textContent = 'File saat ini: ' + rule.mediaFilename + ' — pilih file baru untuk mengganti, atau ';
+                const removeLink = document.createElement('a');
+                removeLink.href = '#';
+                removeLink.textContent = 'hapus lampiran';
+                removeLink.className = 'font-semibold text-red-600 hover:underline';
+                removeLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    adminAutoReplyRemoveExistingMedia = true;
+                    adminAutoReplyCurrentFile.textContent = 'Lampiran akan dihapus setelah disimpan.';
+                });
+                adminAutoReplyCurrentFile.appendChild(removeLink);
+                adminAutoReplyCurrentFile.classList.remove('hidden');
+            } else {
+                adminAutoReplyCurrentFile.classList.add('hidden');
+            }
             adminAutoReplyFormTitle.textContent = 'Edit Aturan';
             adminAutoReplySubmitButton.textContent = 'Simpan Perubahan';
             adminAutoReplyCancelEditButton.classList.remove('hidden');
@@ -7487,18 +9541,19 @@ function renderHomePage() {
             event.preventDefault();
             const editingId = adminAutoReplyEditingId.value;
             try {
-                const payload = {
-                    keyword: document.getElementById('adminAutoReplyKeyword').value,
-                    replyText: document.getElementById('adminAutoReplyText').value,
-                    matchType: document.getElementById('adminAutoReplyMatchType').value,
-                    sessionId: adminAutoReplySession.value || '',
-                };
+                const formData = new FormData();
+                formData.set('keyword', document.getElementById('adminAutoReplyKeyword').value);
+                formData.set('replyText', document.getElementById('adminAutoReplyText').value);
+                formData.set('matchType', document.getElementById('adminAutoReplyMatchType').value);
+                formData.set('sessionId', adminAutoReplySession.value || '');
+                if (adminAutoReplyFile.files[0]) {
+                    formData.set('file', adminAutoReplyFile.files[0]);
+                }
+                if (editingId && adminAutoReplyRemoveExistingMedia) {
+                    formData.set('removeMedia', 'true');
+                }
                 const url = editingId ? '/api/admin/auto-replies/' + editingId : '/api/admin/auto-replies';
-                const response = await fetch(url, {
-                    method: editingId ? 'PATCH' : 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
+                const response = await fetch(url, { method: editingId ? 'PATCH' : 'POST', body: formData });
                 const data = await response.json();
                 if (!response.ok || !data.success) throw new Error(data.message || 'Gagal menyimpan aturan');
                 showAdminAutoReplyAlert(data.message, false);
@@ -7525,7 +9580,8 @@ function renderHomePage() {
                     '<div class="min-w-0">' +
                     '<p class="text-sm font-semibold text-slate-800">' + escapeAutoReplyHtml(r.keyword) +
                     ' <span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">' + (ADMIN_MATCH_LABELS[r.matchType] || r.matchType) + '</span>' +
-                    (r.enabled ? '' : ' <span class="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-500">nonaktif</span>') + '</p>' +
+                    (r.enabled ? '' : ' <span class="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-500">nonaktif</span>') +
+                    (r.hasMedia ? ' <span class="ml-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-600">📎 lampiran</span>' : '') + '</p>' +
                     '<p class="mt-0.5 whitespace-pre-wrap break-words text-xs text-slate-500">' + escapeAutoReplyHtml(r.replyText) + '</p></div>' +
                     '<div class="flex shrink-0 gap-1.5">' +
                     '<button type="button" data-edit-admin-reply="' + r.id + '" class="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-200 transition">Edit</button>' +
@@ -7563,17 +9619,13 @@ function renderHomePage() {
             }
         });
 
-        loadRequests();
-        loadNotifyConfig();
-        loadPaymentConfig();
-        loadUsers();
         loadAdmins();
+        loadAuditLog();
+        loadMessageStats();
         loadSchedule();
         loadHistory();
         loadAdminOwnSessions();
         loadAdminAutoReplies();
-        setInterval(loadRequests, pollIntervalMs);
-        setInterval(loadUsers, pollIntervalMs);
         setInterval(loadAdmins, pollIntervalMs);
         setInterval(loadSchedule, pollIntervalMs);
         setInterval(loadHistory, pollIntervalMs);
@@ -7936,28 +9988,58 @@ function renderHomePage() {
         });
         historyRefreshButton.addEventListener('click', loadHistory);
 
-        // Auto-unlock gated tabs if a key was already saved this session
-        if (sessionStorage.getItem('wa_logs_key') !== null) {
-            logsApiKeyInput.value = sessionStorage.getItem('wa_logs_key');
-            unlockLogs();
+        // Semua tab memakai cookie sesi admin yang dibuat saat login.
+        unlockLogs();
+        unlockSettings();
+        unlockBroadcast();
+        unlockSchedule();
+        unlockHistory();
+
+        function connectCentrifugo() {
+          if (!centrifugoWsUrl || !window.WebSocket) return;
+
+          const socket = new WebSocket(centrifugoWsUrl);
+          let nextCommandId = 1;
+            let connected = false;
+
+          socket.addEventListener('open', () => {
+            socket.send(JSON.stringify({ id: nextCommandId++, method: 'connect', params: {} }));
+          });
+
+          socket.addEventListener('message', (event) => {
+            let message;
+            try { message = JSON.parse(event.data); } catch { return; }
+
+            if (message.id && message.result && !connected) {
+              connected = true;
+              socket.send(JSON.stringify({
+                id: nextCommandId++,
+                method: 'subscribe',
+                params: { channel: centrifugoChannel },
+              }));
+              return;
+            }
+
+            const data = message.push?.pub?.data || message.result?.data;
+            if (!data) return;
+
+            if (data.event === 'session.updated') {
+              refreshAccounts();
+              loadMessageStats();
+            } else if (data.event === 'history.updated') {
+              loadHistory();
+              loadMessageStats();
+            }
+          });
+
+          socket.addEventListener('close', () => {
+            setTimeout(connectCentrifugo, 5000);
+          });
         }
-        if (sessionStorage.getItem('wa_settings_key') !== null) {
-            settingsApiKeyInput.value = sessionStorage.getItem('wa_settings_key');
-            unlockSettings();
-        }
-        if (sessionStorage.getItem('wa_broadcast_key') !== null) {
-            broadcastApiKeyInput.value = sessionStorage.getItem('wa_broadcast_key');
-            unlockBroadcast();
-        }
-        if (sessionStorage.getItem('wa_schedule_key') !== null) {
-            scheduleApiKeyInput.value = sessionStorage.getItem('wa_schedule_key');
-            unlockSchedule();
-        }
-        if (sessionStorage.getItem('wa_history_key') !== null) {
-            historyApiKeyInput.value = sessionStorage.getItem('wa_history_key');
-            unlockHistory();
-        }
+
+        connectCentrifugo();
     </script>
+${SIDEBAR_TOGGLE_SCRIPT}
 </body>
 </html>`;
 }
@@ -7969,7 +10051,8 @@ const DOC_ENDPOINTS = [
     path: "/api/status",
     title: "Status Gateway",
     badge: "publik",
-    summary: "Status koneksi gateway (terhubung, sedang connect, antrean, dsb).",
+    summary:
+      "Status koneksi gateway (terhubung, sedang connect, antrean, dsb).",
     body: `<p class="text-slate-600 leading-relaxed">Mengembalikan status koneksi WhatsApp saat ini dalam format JSON. Tidak butuh body request. Tambahkan query <code class="rounded bg-slate-100 px-1.5 py-0.5">?session=ID</code> untuk memilih akun tertentu (default: akun utama). Lihat daftar ID akun lewat <code class="rounded bg-slate-100 px-1.5 py-0.5">GET /api/sessions</code>.</p>`,
     curl: (base) => `curl ${base}/api/status`,
     example: JSON.stringify(
@@ -8002,7 +10085,8 @@ const DOC_ENDPOINTS = [
     path: "/api/qr",
     title: "Ambil QR Code",
     badge: "publik",
-    summary: "QR code (data URL base64) untuk dipindai saat sesi belum terhubung.",
+    summary:
+      "QR code (data URL base64) untuk dipindai saat sesi belum terhubung.",
     body: `<p class="text-slate-600 leading-relaxed">Mengembalikan QR code sebagai data URL base64. Mengembalikan status <code class="rounded bg-slate-100 px-1.5 py-0.5 text-sm">404</code> jika QR belum tersedia (misalnya saat sudah terhubung).</p>`,
     curl: (base) => `curl ${base}/api/qr`,
     example: JSON.stringify(
@@ -8062,7 +10146,8 @@ const DOC_ENDPOINTS = [
     path: "/api/send-file",
     title: "Kirim File / File + Text",
     badge: "file & gabungan",
-    summary: "Kirim media (gambar, video, audio, dokumen) dengan caption opsional.",
+    summary:
+      "Kirim media (gambar, video, audio, dokumen) dengan caption opsional.",
     body: `
       <p class="text-slate-600 leading-relaxed">Mendukung dua mode sekaligus: <strong>File only</strong> (tanpa <code>caption</code>) dan <strong>gabungan File + Text</strong> (dengan <code>caption</code> diisi).</p>
       <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
@@ -8180,7 +10265,8 @@ curl -X POST ${base}/api/send-file \\
     example: JSON.stringify(
       {
         success: true,
-        message: "Broadcast dijadwalkan ke 2 nomor. Cek tab Riwayat untuk status pengiriman.",
+        message:
+          "Broadcast dijadwalkan ke 2 nomor. Cek tab Riwayat untuk status pengiriman.",
         total: 2,
         requestId: "a1b2c3d4",
       },
@@ -8194,7 +10280,8 @@ curl -X POST ${base}/api/send-file \\
     path: "/api/schedule",
     title: "Buat Pesan Terjadwal",
     badge: "butuh api key",
-    summary: "Jadwalkan pesan (teks/file/gabungan) untuk dikirim pada waktu tertentu di masa depan.",
+    summary:
+      "Jadwalkan pesan (teks/file/gabungan) untuk dikirim pada waktu tertentu di masa depan.",
     body: `
       <div class="overflow-x-auto rounded-xl border border-slate-200">
         <table class="w-full text-sm">
@@ -8241,7 +10328,8 @@ curl -X POST ${base}/api/send-file \\
     path: "/api/schedule",
     title: "Daftar Pesan Terjadwal",
     badge: "butuh api key",
-    summary: "Lihat semua pesan terjadwal beserta statusnya (pending/sent/failed/cancelled).",
+    summary:
+      "Lihat semua pesan terjadwal beserta statusnya (pending/sent/failed/cancelled).",
     body: `<p class="text-slate-600 leading-relaxed">Mengembalikan seluruh pesan terjadwal, terbaru lebih dulu. Tidak butuh body request.</p>`,
     curl: (base) => `curl ${base}/api/schedule \\
   -H "x-api-key: YOUR_API_KEY"`,
@@ -8291,7 +10379,8 @@ curl -X POST ${base}/api/send-file \\
     path: "/api/history",
     title: "Riwayat Pengiriman",
     badge: "butuh api key",
-    summary: "Riwayat pesan yang sudah dikirim (form, API, broadcast, terjadwal) beserta statusnya.",
+    summary:
+      "Riwayat pesan yang sudah dikirim (form, API, broadcast, terjadwal) beserta statusnya.",
     body: `<p class="text-slate-600 leading-relaxed">Mengembalikan riwayat pengiriman terbaru (maks 500 entri tersimpan). Gunakan parameter query <code class="rounded bg-slate-100 px-1.5 py-0.5">limit</code> untuk membatasi jumlah hasil.</p>`,
     curl: (base) => `curl "${base}/api/history?limit=50" \\
   -H "x-api-key: YOUR_API_KEY"`,
@@ -8323,7 +10412,8 @@ curl -X POST ${base}/api/send-file \\
     path: "/api/sessions",
     title: "Daftar Akun WhatsApp",
     badge: "publik",
-    summary: "Multi-akun: daftar semua akun WhatsApp yang terhubung ke gateway ini beserta statusnya.",
+    summary:
+      "Multi-akun: daftar semua akun WhatsApp yang terhubung ke gateway ini beserta statusnya.",
     body: `<p class="text-slate-600 leading-relaxed">Gateway ini mendukung banyak akun WhatsApp sekaligus (sampai batas <code class="rounded bg-slate-100 px-1.5 py-0.5">MAX_ACCOUNTS</code>, diatur di tab Pengaturan). Gunakan <code class="rounded bg-slate-100 px-1.5 py-0.5">id</code> dari daftar ini sebagai nilai query <code class="rounded bg-slate-100 px-1.5 py-0.5">?session=</code> pada endpoint lain untuk memilih akun pengirim.</p>`,
     curl: (base) => `curl ${base}/api/sessions`,
     example: JSON.stringify(
@@ -8360,7 +10450,8 @@ curl -X POST ${base}/api/send-file \\
     path: "/api/sessions",
     title: "Tambah Akun WhatsApp",
     badge: "publik",
-    summary: "Buat akun WhatsApp baru untuk dihubungkan (akan mendapat QR baru untuk discan).",
+    summary:
+      "Buat akun WhatsApp baru untuk dihubungkan (akan mendapat QR baru untuk discan).",
     body: `
       <p class="text-slate-600 leading-relaxed">Ditolak dengan status <code class="rounded bg-slate-100 px-1.5 py-0.5">409</code> kalau jumlah akun sudah mencapai batas <code class="rounded bg-slate-100 px-1.5 py-0.5">MAX_ACCOUNTS</code>.</p>
       <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
@@ -8417,12 +10508,185 @@ function methodBadgeTone(method) {
 
 function renderDocsPage(req) {
   const baseUrl = `${req.protocol}://${req.get("host")}`;
-  const apiKeyNote = API_KEY
-    ? "Endpoint ditandai <strong>publik</strong> tidak butuh API key; sisanya wajib menyertakan header <code class=\"rounded bg-white/70 px-1.5 py-0.5\">x-api-key</code>."
-    : "<strong>API_KEY belum diset</strong> di server, jadi semua endpoint saat ini bisa diakses tanpa autentikasi. Set <code class=\"rounded bg-white/70 px-1.5 py-0.5\">API_KEY</code> di <code class=\"rounded bg-white/70 px-1.5 py-0.5\">.env</code> untuk produksi.";
+  const language = req.query.lang === "en" ? "en" : "id";
+  const copy =
+    language === "en"
+      ? {
+          apiKey: API_KEY
+            ? 'Endpoints marked <strong>public</strong> do not need an API key; the rest require the <code class="rounded bg-white/70 px-1.5 py-0.5">x-api-key</code> header.'
+            : '<strong>API_KEY is not configured</strong>, so all endpoints are currently unauthenticated. Set <code class="rounded bg-white/70 px-1.5 py-0.5">API_KEY</code> in <code class="rounded bg-white/70 px-1.5 py-0.5">.env</code> for production.',
+          hub: "WhatsApp Gateway Developer Hub",
+          heroTitle:
+            "Build WhatsApp notifications without managing Baileys connections.",
+          heroText:
+            "Explore the API, install a ready-to-use client, and connect Laravel, Express, Python, or any other backend to this gateway.",
+          apiButton: "Open API Reference",
+          integrationButton: "View Integration Guide",
+          integrationTitle: "Integration resources",
+          integrationText:
+            "Everything you need to use this gateway from another project.",
+          pythonLink: "Python client →",
+          apiDescription:
+            "Complete endpoint, body, authentication, and response documentation.",
+          integrationDescription:
+            "Integrate with Laravel, Express, Python, and other backends.",
+          laravelDescription:
+            "Ready-to-use PHP service for Laravel applications.",
+          clientDescription: "Open the JavaScript and Python client examples.",
+          publicDocs: "Public documentation",
+          backHome: "Back to Home",
+          endpoints: "Endpoints",
+          apiDocumentation: "API Documentation",
+          request: "Request",
+          exampleResponse: "Example Response",
+          copy: "Copy",
+          responseFormat: "Response Format",
+        }
+      : {
+          apiKey: API_KEY
+            ? 'Endpoint ditandai <strong>publik</strong> tidak butuh API key; sisanya wajib menyertakan header <code class="rounded bg-white/70 px-1.5 py-0.5">x-api-key</code>.'
+            : '<strong>API_KEY belum diset</strong> di server, jadi semua endpoint saat ini bisa diakses tanpa autentikasi. Set <code class="rounded bg-white/70 px-1.5 py-0.5">API_KEY</code> di <code class="rounded bg-white/70 px-1.5 py-0.5">.env</code> untuk produksi.',
+          hub: "WhatsApp Gateway Developer Hub",
+          heroTitle:
+            "Bangun notifikasi WhatsApp tanpa mengurus koneksi Baileys.",
+          heroText:
+            "Pelajari endpoint API, pasang client siap pakai, lalu hubungkan aplikasi Laravel, Express, Python, atau backend lain ke gateway ini.",
+          apiButton: "Buka API Reference",
+          integrationButton: "Lihat Integration Guide",
+          integrationTitle: "Panduan integrasi",
+          integrationText:
+            "Semua materi untuk memakai gateway dari project lain tersedia di sini.",
+          pythonLink: "Python client →",
+          apiDescription:
+            "Dokumentasi lengkap endpoint, body, auth, dan response.",
+          integrationDescription:
+            "Langkah integrasi Laravel, Express, Python, dan backend lain.",
+          laravelDescription: "Service PHP siap dipakai dari aplikasi Laravel.",
+          clientDescription: "Buka contoh client untuk JavaScript dan Python.",
+          publicDocs: "Dokumentasi publik",
+          backHome: "Kembali ke Home",
+          endpoints: "Endpoints",
+          apiDocumentation: "API Documentation",
+          request: "Request",
+          exampleResponse: "Contoh Response",
+          copy: "Salin",
+          responseFormat: "Response Format",
+        };
+  const apiKeyNote = copy.apiKey;
+  const endpointEnglish = {
+    status: {
+      title: "Gateway Status",
+      summary:
+        "Current gateway connection status, queue, and WhatsApp session state.",
+      body: `<p class="text-slate-600 leading-relaxed">Returns the current WhatsApp connection status as JSON. No request body is required. Add <code class="rounded bg-slate-100 px-1.5 py-0.5">?session=ID</code> to select a specific account.</p>`,
+    },
+    qr: {
+      title: "Get QR Code",
+      summary: "Returns the QR data URL used to connect a WhatsApp session.",
+      body: `<p class="text-slate-600 leading-relaxed">Returns the QR code as a base64 data URL. The endpoint returns <code class="rounded bg-slate-100 px-1.5 py-0.5">404</code> when a QR code is not available.</p>`,
+    },
+    send: {
+      title: "Send Message (Text Only)",
+      summary: "Send a plain text message to one recipient.",
+      body: `<p class="text-slate-600 leading-relaxed"><strong>Text only</strong> mode sends a plain message without an attachment. Required fields: <code>number</code> and <code>message</code>.</p>`,
+    },
+    "send-file": {
+      title: "Send File / File + Text",
+      summary:
+        "Send an image, video, audio file, or document with an optional caption.",
+      body: `<p class="text-slate-600 leading-relaxed">Uses <code>multipart/form-data</code>. Required fields are <code>number</code> and <code>file</code>; <code>caption</code> and <code>session</code> are optional.</p>`,
+    },
+    "test-chat": {
+      title: "Test Chat",
+      summary: "Send a test message to the connected WhatsApp number.",
+      body: `<p class="text-slate-600 leading-relaxed">Useful for confirming that the gateway can send messages. No request body is required.</p>`,
+    },
+    logout: {
+      title: "Logout / Change Account",
+      summary:
+        "Log out the linked device, remove the old session, and prepare a new QR code.",
+      body: `<p class="text-slate-600 leading-relaxed">Logs out the linked WhatsApp device and prepares a fresh QR code for another account.</p>`,
+    },
+    broadcast: {
+      title: "Broadcast",
+      summary: "Send one text or file message to multiple recipients.",
+      body: `<p class="text-slate-600 leading-relaxed">Provide a comma- or newline-separated recipient list. The gateway processes delivery through its internal queue.</p>`,
+    },
+    "schedule-create": {
+      title: "Create Scheduled Message",
+      summary: "Schedule a text or file message for a future time.",
+      body: `<p class="text-slate-600 leading-relaxed">Set a future <code>sendAt</code> value and the gateway will deliver the message automatically.</p>`,
+    },
+    "schedule-list": {
+      title: "List Scheduled Messages",
+      summary: "List messages that have been scheduled through the gateway.",
+      body: `<p class="text-slate-600 leading-relaxed">Returns pending, sent, failed, and cancelled scheduled messages.</p>`,
+    },
+    "schedule-cancel": {
+      title: "Cancel Scheduled Message",
+      summary: "Cancel a scheduled message that is still pending.",
+      body: `<p class="text-slate-600 leading-relaxed">Only messages with <code>pending</code> status can be cancelled.</p>`,
+    },
+    history: {
+      title: "Delivery History",
+      summary: "Read recent message delivery history.",
+      body: `<p class="text-slate-600 leading-relaxed">Returns recent sent and failed messages. Use the <code>limit</code> query parameter to control the result size.</p>`,
+    },
+    "sessions-list": {
+      title: "List WhatsApp Accounts",
+      summary: "List the WhatsApp sessions managed by the gateway.",
+      body: `<p class="text-slate-600 leading-relaxed">Returns account IDs, connection state, and QR availability for each session.</p>`,
+    },
+    "sessions-create": {
+      title: "Add WhatsApp Account",
+      summary: "Create a new WhatsApp session and prepare its QR code.",
+      body: `<p class="text-slate-600 leading-relaxed">Create a session, then scan the QR code returned by the session status endpoints.</p>`,
+    },
+    "sessions-delete": {
+      title: "Delete WhatsApp Account",
+      summary: "Log out and permanently remove a WhatsApp session.",
+      body: `<p class="text-slate-600 leading-relaxed">Removes the linked device and its session data from the gateway.</p>`,
+    },
+  };
+  const localizedDocEndpoints =
+    language === "en"
+      ? DOC_ENDPOINTS.map((endpoint) => ({
+          ...endpoint,
+          ...(endpointEnglish[endpoint.id] || {}),
+          badge:
+            endpoint.badge === "publik"
+              ? "public"
+              : endpoint.badge === "utilitas"
+                ? "utility"
+                : endpoint.badge === "gabungan"
+                  ? "combined"
+                  : endpoint.badge,
+        }))
+      : DOC_ENDPOINTS;
+  const resourceLinks = `
+    <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <a href="/docs/api-reference" class="group rounded-xl border border-sky-200 bg-sky-50 p-4 transition hover:border-sky-300 hover:bg-sky-100">
+        <p class="text-sm font-bold text-sky-900">API Reference</p>
+        <p class="mt-1 text-xs leading-relaxed text-sky-700">${copy.apiDescription}</p>
+      </a>
+      <a href="/docs/integration?lang=${language}" class="group rounded-xl border border-emerald-200 bg-emerald-50 p-4 transition hover:border-emerald-300 hover:bg-emerald-100">
+        <p class="text-sm font-bold text-emerald-900">Integration Guide</p>
+        <p class="mt-1 text-xs leading-relaxed text-emerald-700">${copy.integrationDescription}</p>
+      </a>
+      <a href="/docs/client/laravel?lang=${language}" class="group rounded-xl border border-amber-200 bg-amber-50 p-4 transition hover:border-amber-300 hover:bg-amber-100">
+        <p class="text-sm font-bold text-amber-900">Laravel Client</p>
+        <p class="mt-1 text-xs leading-relaxed text-amber-700">${copy.laravelDescription}</p>
+      </a>
+      <a href="/docs/client/express?lang=${language}" class="group rounded-xl border border-violet-200 bg-violet-50 p-4 transition hover:border-violet-300 hover:bg-violet-100">
+        <p class="text-sm font-bold text-violet-900">Express & Python</p>
+        <p class="mt-1 text-xs leading-relaxed text-violet-700"><span class="underline">${copy.clientDescription}</span></p>
+      </a>
+    </div>`;
 
-  const navItems = DOC_ENDPOINTS.map(
-    (ep, index) => `
+  const navItems =
+    localizedDocEndpoints
+      .map(
+        (ep, index) => `
       <button
         type="button"
         data-tab="${ep.id}"
@@ -8431,22 +10695,24 @@ function renderDocsPage(req) {
         <span class="shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${methodBadgeTone(ep.method)} ${index === 0 ? "!bg-white/20 !text-white" : ""}">${ep.method}</span>
         <span class="truncate font-medium">${ep.title}</span>
       </button>`,
-  ).join("") + `
+      )
+      .join("") +
+    `
       <button
         type="button"
         data-tab="response-format"
         class="doc-tab w-full flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-slate-600 transition hover:bg-slate-100"
       >
         <span class="shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide bg-slate-200 text-slate-700">INFO</span>
-        <span class="truncate font-medium">Response Format</span>
+        <span class="truncate font-medium">${copy.responseFormat}</span>
       </button>`;
 
-const RESPONSE_FORMAT_PANEL = `
+  const RESPONSE_FORMAT_PANEL = `
   <div class="flex flex-wrap items-center gap-3">
     <span class="rounded-md px-2.5 py-1 text-xs font-bold tracking-wide bg-slate-200 text-slate-700">INFO</span>
-    <span class="text-lg font-semibold text-slate-800">Response Format</span>
-  </div>
-  <p class="mt-2 text-sm text-slate-500">Semua endpoint <code class="rounded bg-slate-100 px-1.5 py-0.5">/api/*</code> mengembalikan JSON dengan pola berikut, dan kode status HTTP yang umum dipakai.</p>
+    <span class="text-lg font-semibold text-slate-800">${copy.responseFormat}</span>
+    </div>
+    <p class="mt-2 text-sm text-slate-500">${language === "en" ? "All" : "Semua"} <code class="rounded bg-slate-100 px-1.5 py-0.5">/api/*</code> ${language === "en" ? "endpoints return JSON using the following pattern and common HTTP status codes." : "endpoint mengembalikan JSON dengan pola berikut, dan kode status HTTP yang umum dipakai."}</p>
   <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
     <table class="w-full text-sm">
       <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -8463,8 +10729,10 @@ const RESPONSE_FORMAT_PANEL = `
   </div>
 `;
 
-  const panels = DOC_ENDPOINTS.map(
-    (ep, index) => `
+  const panels =
+    localizedDocEndpoints
+      .map(
+        (ep, index) => `
       <section data-panel="${ep.id}" class="doc-panel px-1 ${index === 0 ? "" : "hidden"}">
         <div class="grid gap-5 lg:grid-cols-[1fr_360px]">
           <div class="min-w-0">
@@ -8478,27 +10746,29 @@ const RESPONSE_FORMAT_PANEL = `
           </div>
           <div class="min-w-0">
             <div class="flex gap-1 rounded-t-xl bg-slate-900 p-1.5">
-              <button type="button" data-example-tab="request" class="example-tab flex-1 rounded-lg py-1.5 text-xs font-semibold transition" data-scope="${ep.id}">Request</button>
-              <button type="button" data-example-tab="response" class="example-tab flex-1 rounded-lg py-1.5 text-xs font-semibold transition" data-scope="${ep.id}">Contoh Response</button>
+              <button type="button" data-example-tab="request" class="example-tab flex-1 rounded-lg py-1.5 text-xs font-semibold transition" data-scope="${ep.id}">${copy.request}</button>
+              <button type="button" data-example-tab="response" class="example-tab flex-1 rounded-lg py-1.5 text-xs font-semibold transition" data-scope="${ep.id}">${copy.exampleResponse}</button>
             </div>
             <div data-example-panel="request" data-scope="${ep.id}" class="example-panel">
               <div class="flex items-center justify-between bg-slate-900 px-4 py-1.5">
                 <span class="text-xs font-medium text-slate-400">curl</span>
-                <button type="button" class="copy-btn text-xs font-medium text-slate-400 hover:text-white transition" data-target="curl-${ep.id}">Salin</button>
+                <button type="button" class="copy-btn text-xs font-medium text-slate-400 hover:text-white transition" data-target="curl-${ep.id}">${copy.copy}</button>
               </div>
               <pre class="max-h-[55vh] overflow-auto rounded-b-xl bg-slate-950 px-4 py-4 text-sm leading-relaxed text-emerald-300"><code id="curl-${ep.id}">${escapeHtml(ep.curl(baseUrl))}</code></pre>
             </div>
             <div data-example-panel="response" data-scope="${ep.id}" class="example-panel hidden">
               <div class="flex items-center justify-between bg-slate-900 px-4 py-1.5">
                 <span class="text-xs font-medium text-slate-400">JSON</span>
-                <button type="button" class="copy-btn text-xs font-medium text-slate-400 hover:text-white transition" data-target="example-${ep.id}">Salin</button>
+                <button type="button" class="copy-btn text-xs font-medium text-slate-400 hover:text-white transition" data-target="example-${ep.id}">${copy.copy}</button>
               </div>
               <pre class="max-h-[55vh] overflow-auto rounded-b-xl bg-slate-950 px-4 py-4 text-sm leading-relaxed text-sky-300"><code id="example-${ep.id}">${escapeHtml(ep.example || "")}</code></pre>
             </div>
           </div>
         </div>
       </section>`,
-  ).join("") + `
+      )
+      .join("") +
+    `
       <section data-panel="response-format" class="doc-panel hidden px-1">
         ${RESPONSE_FORMAT_PANEL}
       </section>`;
@@ -8510,6 +10780,7 @@ const RESPONSE_FORMAT_PANEL = `
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>API Documentation - ${APP_NAME}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    ${renderSidebarToggleHead("drawer")}
 </head>
 <body class="h-full overflow-hidden bg-slate-100 text-slate-800">
     <div class="flex h-full">
@@ -8526,7 +10797,7 @@ const RESPONSE_FORMAT_PANEL = `
                             <p class="truncate text-sm font-bold text-slate-900">${escapeHtml(APP_NAME)}</p>
                             ${renderEnvBadge()}
                         </div>
-                        <p class="truncate text-xs text-slate-400">API Documentation <span class="text-slate-300">&middot;</span> v${escapeHtml(APP_VERSION)}</p>
+                        <p class="truncate text-xs text-slate-400">${copy.apiDocumentation} <span class="text-slate-300">&middot;</span> v${escapeHtml(APP_VERSION)}</p>
                     </div>
                 </div>
                 <button id="drawerClose" type="button" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 sm:hidden" aria-label="Tutup menu">
@@ -8534,13 +10805,13 @@ const RESPONSE_FORMAT_PANEL = `
                 </button>
             </div>
 
-            <p class="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Endpoints</p>
+            <p class="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-400">${copy.endpoints}</p>
             <nav class="flex-1 space-y-1 overflow-y-auto p-3 pt-1">${navItems}</nav>
 
             <div class="border-t border-slate-200 p-3">
-                <a href="/" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-600 transition hover:bg-slate-100">
+                <a href="/landing" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-600 transition hover:bg-slate-100">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-                    Kembali ke Home
+                    ${copy.backHome}
                 </a>
             </div>
         </aside>
@@ -8551,14 +10822,42 @@ const RESPONSE_FORMAT_PANEL = `
                     <button id="drawerToggle" type="button" class="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100 sm:hidden" aria-label="Buka menu">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
+                    ${renderSidebarToggleButton()}
                     <h1 id="docTitle" class="text-base font-semibold text-slate-800">Status Gateway</h1>
                 </div>
+                  <div class="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 text-xs font-bold">
+                    <a href="/docs?lang=id" class="rounded-md px-2.5 py-1.5 ${language === "id" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-400 hover:text-slate-700"}">ID</a>
+                    <a href="/docs?lang=en" class="rounded-md px-2.5 py-1.5 ${language === "en" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-400 hover:text-slate-700"}">EN</a>
+                  </div>
             </header>
 
             <main class="min-h-0 flex-1 overflow-auto p-4 sm:p-6">
                 <div class="mx-auto h-full max-w-3xl">
+                <section class="mb-5 overflow-hidden rounded-2xl bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7 sm:py-8">
+                  <div class="max-w-2xl">
+                    <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">${copy.hub}</p>
+                    <h2 class="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">${copy.heroTitle}</h2>
+                    <p class="mt-3 max-w-xl text-sm leading-relaxed text-slate-300">${copy.heroText}</p>
+                    <div class="mt-5 flex flex-wrap gap-2.5">
+                      <a href="/docs/api-reference?lang=${language}" class="rounded-lg bg-emerald-500 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-400">${copy.apiButton}</a>
+                      <a href="/docs/integration?lang=${language}" class="rounded-lg bg-white/10 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20">${copy.integrationButton}</a>
+                    </div>
+                  </div>
+                </section>
+
                     <div class="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-900 sm:text-sm">
                         ${apiKeyNote}
+                    </div>
+
+                    <div class="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+                      <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h2 class="text-sm font-bold text-slate-900">${copy.integrationTitle}</h2>
+                          <p class="mt-1 text-xs text-slate-500">${copy.integrationText}</p>
+                        </div>
+                        <a href="/docs/client/python?lang=${language}" class="text-xs font-semibold text-emerald-700 hover:text-emerald-800">${copy.pythonLink}</a>
+                      </div>
+                      ${resourceLinks}
                     </div>
 
                     <div class="rounded-xl border border-slate-200 bg-white p-5">
@@ -8576,8 +10875,10 @@ const RESPONSE_FORMAT_PANEL = `
         const drawerBackdrop = document.getElementById('drawerBackdrop');
         const docTitle = document.getElementById('docTitle');
         const DOC_TITLES = ${JSON.stringify({
-          ...Object.fromEntries(DOC_ENDPOINTS.map((ep) => [ep.id, ep.title])),
-          "response-format": "Response Format",
+          ...Object.fromEntries(
+            localizedDocEndpoints.map((ep) => [ep.id, ep.title]),
+          ),
+          "response-format": copy.responseFormat,
         })};
 
         function activateTab(id) {
@@ -8656,8 +10957,372 @@ const RESPONSE_FORMAT_PANEL = `
             tab.addEventListener('click', () => activateExampleTab(tab.dataset.scope, tab.dataset.exampleTab));
         });
     </script>
+${SIDEBAR_TOGGLE_SCRIPT}
 </body>
 </html>`;
+}
+
+function renderDeveloperLandingPage(req) {
+  const language = req.query.lang === "en" ? "en" : "id";
+  const copy =
+    language === "en"
+      ? {
+          eyebrow: "Developer platform",
+          title: "Ship WhatsApp workflows from the backend you already use.",
+          text: "A practical gateway for teams that need reliable WhatsApp sending without embedding Baileys into every application.",
+          api: "Explore API Reference",
+          guide: "Read Integration Guide",
+          docs: "Open endpoint docs",
+          apiText:
+            "Exact routes, request fields, authentication, status codes, and response examples.",
+          integration: "Integration guides",
+          integrationText:
+            "Copy-ready examples for Laravel, Express, Python, and any HTTP-capable backend.",
+          clients: "Ready-to-use clients",
+          clientsText:
+            "Download or copy the maintained Laravel, Express, and Python wrappers.",
+          flow: "One gateway. Any backend.",
+          flowText:
+            "Keep business logic in your application and let this service handle WhatsApp sessions, queues, scheduling, and delivery.",
+          cta: "Start with the API reference",
+        }
+      : {
+          eyebrow: "Developer platform",
+          title: "Bangun alur WhatsApp dari backend yang sudah kamu gunakan.",
+          text: "Gateway praktis untuk tim yang membutuhkan pengiriman WhatsApp tanpa menanam Baileys di setiap aplikasi.",
+          api: "Lihat API Reference",
+          guide: "Buka Integration Guide",
+          docs: "Buka dokumentasi endpoint",
+          apiText:
+            "Route asli, field request, autentikasi, status code, dan contoh response.",
+          integration: "Panduan integrasi",
+          integrationText:
+            "Contoh siap salin untuk Laravel, Express, Python, dan backend berbasis HTTP lainnya.",
+          clients: "Client siap pakai",
+          clientsText:
+            "Unduh atau salin wrapper Laravel, Express, dan Python yang tersedia.",
+          flow: "Satu gateway. Semua backend.",
+          flowText:
+            "Simpan business logic di aplikasi utama dan biarkan service ini mengurus session WhatsApp, antrean, penjadwalan, dan delivery.",
+          cta: "Mulai dari API reference",
+        };
+
+  return `<!doctype html>
+<html lang="${language}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Developer Hub - ${escapeHtml(APP_NAME)}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+  <header class="border-b border-white/10 bg-slate-950/95 px-4 py-4 sm:px-8">
+    <div class="mx-auto flex max-w-6xl items-center justify-between gap-4">
+      <a href="/developers?lang=${language}" class="flex items-center gap-2.5">
+        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500 font-black text-slate-950">W</span>
+        <span class="text-sm font-bold tracking-tight">${escapeHtml(APP_NAME)} <span class="font-normal text-slate-400">Developer Hub</span></span>
+      </a>
+      <div class="flex items-center gap-2">
+        <a href="/docs?lang=${language}" class="hidden rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10 sm:inline-flex">${copy.docs}</a>
+        <div class="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 p-1 text-[10px] font-bold">
+          <a href="/developers?lang=id" class="rounded-md px-2 py-1 ${language === "id" ? "bg-white text-slate-900" : "text-slate-400 hover:text-white"}">ID</a>
+          <a href="/developers?lang=en" class="rounded-md px-2 py-1 ${language === "en" ? "bg-white text-slate-900" : "text-slate-400 hover:text-white"}">EN</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="relative overflow-hidden border-b border-white/10 px-4 py-20 sm:px-8 sm:py-28">
+      <div class="pointer-events-none absolute inset-0 opacity-40" style="background-image: linear-gradient(rgba(148,163,184,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.08) 1px, transparent 1px); background-size: 42px 42px;"></div>
+      <div class="relative mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.2fr_.8fr] lg:items-center">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[0.24em] text-emerald-300">${copy.eyebrow}</p>
+          <h1 class="mt-4 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-6xl">${copy.title}</h1>
+          <p class="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">${copy.text}</p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="/docs/api-reference?lang=${language}" class="rounded-lg bg-emerald-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-400">${copy.api}</a>
+            <a href="/docs/integration?lang=${language}" class="rounded-lg border border-white/15 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10">${copy.guide}</a>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/[.06] p-5 shadow-2xl shadow-emerald-950/30">
+          <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <span class="text-xs font-bold uppercase tracking-widest text-slate-400">HTTP API</span>
+            <span class="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[10px] font-bold text-emerald-300">READY</span>
+          </div>
+          <div class="space-y-3 pt-4 font-mono text-xs">
+            <div class="rounded-lg bg-black/20 px-3 py-3"><span class="text-emerald-300">POST</span> <span class="text-slate-300">/api/external/send</span></div>
+            <div class="rounded-lg bg-black/20 px-3 py-3"><span class="text-emerald-300">POST</span> <span class="text-slate-300">/api/external/send-file</span></div>
+            <div class="rounded-lg bg-black/20 px-3 py-3"><span class="text-sky-300">GET</span> <span class="text-slate-300">/api/status</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-slate-100 px-4 py-16 text-slate-900 sm:px-8 sm:py-20">
+      <div class="mx-auto max-w-6xl">
+        <div class="grid gap-4 md:grid-cols-3">
+          <a href="/docs/api-reference?lang=${language}" class="rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-1 hover:border-emerald-300 hover:shadow-lg">
+            <span class="text-xs font-bold uppercase tracking-widest text-emerald-600">01</span>
+            <h2 class="mt-4 text-xl font-extrabold">API Reference</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-500">${copy.apiText}</p>
+          </a>
+          <a href="/docs/integration?lang=${language}" class="rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-1 hover:border-emerald-300 hover:shadow-lg">
+            <span class="text-xs font-bold uppercase tracking-widest text-emerald-600">02</span>
+            <h2 class="mt-4 text-xl font-extrabold">${copy.integration}</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-500">${copy.integrationText}</p>
+          </a>
+          <a href="/docs/client/laravel?lang=${language}" class="rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-1 hover:border-emerald-300 hover:shadow-lg">
+            <span class="text-xs font-bold uppercase tracking-widest text-emerald-600">03</span>
+            <h2 class="mt-4 text-xl font-extrabold">${copy.clients}</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-500">${copy.clientsText}</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-white px-4 py-16 text-slate-900 sm:px-8 sm:py-20">
+      <div class="mx-auto flex max-w-6xl flex-col justify-between gap-8 md:flex-row md:items-end">
+        <div class="max-w-2xl">
+          <p class="text-xs font-bold uppercase tracking-widest text-emerald-600">${copy.flow}</p>
+          <h2 class="mt-3 text-3xl font-black tracking-tight sm:text-4xl">${copy.flowText}</h2>
+        </div>
+        <a href="/docs/api-reference?lang=${language}" class="shrink-0 rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800">${copy.cta} →</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>`;
+}
+
+const PUBLIC_DOCUMENT_FILES = {
+  "api-reference": {
+    title: "API Reference",
+    description: "Dokumentasi endpoint resmi WhatsApp Gateway.",
+    file: path.join(__dirname, "API.md"),
+  },
+  integration: {
+    title: "Integration Guide",
+    description:
+      "Panduan integrasi gateway dengan Laravel, Express, Python, dan backend lain.",
+    file: path.join(__dirname, "docs", "INTEGRATION.md"),
+    fileByLanguage: {
+      en: path.join(__dirname, "docs", "INTEGRATION.en.md"),
+    },
+  },
+  "client/laravel": {
+    title: "Laravel Client",
+    description:
+      "Contoh service PHP untuk memanggil WhatsApp Gateway dari Laravel.",
+    file: path.join(
+      __dirname,
+      "clients",
+      "laravel",
+      "WhatsappGatewayService.php",
+    ),
+    language: "php",
+  },
+  "client/express": {
+    title: "Express Client",
+    description:
+      "Contoh client JavaScript untuk aplikasi Express atau Node.js.",
+    file: path.join(
+      __dirname,
+      "clients",
+      "express",
+      "whatsappGatewayClient.js",
+    ),
+    language: "javascript",
+  },
+  "client/python": {
+    title: "Python Client",
+    description:
+      "Contoh client Python untuk memanggil endpoint WhatsApp Gateway.",
+    file: path.join(
+      __dirname,
+      "clients",
+      "python",
+      "whatsapp_gateway_client.py",
+    ),
+    language: "python",
+  },
+};
+
+function renderPublicDocumentPage(req, documentKey) {
+  const document = PUBLIC_DOCUMENT_FILES[documentKey];
+  if (!document) {
+    return null;
+  }
+
+  const language = req.query.lang === "en" ? "en" : "id";
+  const sourceFile = document.fileByLanguage?.[language] || document.file;
+  let source;
+  try {
+    source = fs.readFileSync(sourceFile, "utf8");
+  } catch (error) {
+    logger.error("Gagal membaca dokumentasi publik", {
+      documentKey,
+      error: error.message,
+    });
+    return null;
+  }
+
+  const backUrl = "/docs";
+  const downloadUrl = `/docs/download/${documentKey}`;
+  const documentCopy = {
+    id: {
+      "api-reference": [
+        "API Reference",
+        "Dokumentasi endpoint resmi WhatsApp Gateway.",
+      ],
+      integration: [
+        "Integration Guide",
+        "Panduan integrasi gateway dengan Laravel, Express, Python, dan backend lain.",
+      ],
+      "client/laravel": [
+        "Laravel Client",
+        "Contoh service PHP untuk memanggil WhatsApp Gateway dari Laravel.",
+      ],
+      "client/express": [
+        "Express Client",
+        "Contoh client JavaScript untuk aplikasi Express atau Node.js.",
+      ],
+      "client/python": [
+        "Python Client",
+        "Contoh client Python untuk memanggil endpoint WhatsApp Gateway.",
+      ],
+    },
+    en: {
+      "api-reference": [
+        "API Reference",
+        "Official WhatsApp Gateway endpoint documentation.",
+      ],
+      integration: [
+        "Integration Guide",
+        "Connect the gateway to Laravel, Express, Python, and other backends.",
+      ],
+      "client/laravel": [
+        "Laravel Client",
+        "A PHP service example for calling the WhatsApp Gateway from Laravel.",
+      ],
+      "client/express": [
+        "Express Client",
+        "A JavaScript client example for Express or Node.js applications.",
+      ],
+      "client/python": [
+        "Python Client",
+        "A Python client example for calling WhatsApp Gateway endpoints.",
+      ],
+    },
+  }[language][documentKey];
+  const pageTitle = documentCopy?.[0] || document.title;
+  const pageDescription = documentCopy?.[1] || document.description;
+  const pageCopy =
+    language === "en"
+      ? {
+          back: "Back to docs",
+          download: "Download file",
+          public: "Public documentation",
+          copy: "Copy",
+          copied: "Copied!",
+        }
+      : {
+          back: "Kembali ke docs",
+          download: "Unduh file",
+          public: "Dokumentasi publik",
+          copy: "Salin",
+          copied: "Tersalin!",
+        };
+  const isMarkdown =
+    documentKey === "api-reference" || documentKey === "integration";
+  const sourceJson = JSON.stringify(source).replace(/</g, "\\u003c");
+
+  return `<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${escapeHtml(pageTitle)} - ${escapeHtml(APP_NAME)}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    ${isMarkdown ? '<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>' : ""}
+    <style>
+      .prose-doc h1 { margin: 0 0 1.5rem; font-size: 2rem; line-height: 1.15; font-weight: 800; color: #0f172a; }
+      .prose-doc h2 { margin: 2.25rem 0 0.9rem; padding-bottom: 0.45rem; border-bottom: 1px solid #e2e8f0; font-size: 1.3rem; font-weight: 750; color: #0f172a; }
+      .prose-doc h3 { margin: 1.5rem 0 0.65rem; font-size: 1.05rem; font-weight: 750; color: #1e293b; }
+      .prose-doc p { margin: 0.8rem 0; color: #475569; line-height: 1.75; }
+      .prose-doc ul, .prose-doc ol { margin: 0.8rem 0; padding-left: 1.5rem; color: #475569; line-height: 1.75; }
+      .prose-doc li { margin: 0.25rem 0; }
+      .prose-doc a { color: #047857; font-weight: 650; text-decoration: underline; }
+      .prose-doc code:not(pre code) { border-radius: 0.35rem; background: #f1f5f9; padding: 0.15rem 0.35rem; color: #0f766e; font-size: 0.9em; }
+      .prose-doc pre { margin: 1rem 0; overflow-x: auto; border-radius: 0.8rem; background: #0f172a; padding: 1rem; color: #d1fae5; }
+      .prose-doc pre code { font-size: 0.85rem; line-height: 1.65; }
+      .prose-doc blockquote { margin: 1rem 0; border-left: 4px solid #10b981; background: #ecfdf5; padding: 0.7rem 1rem; color: #065f46; }
+      .prose-doc table { display: block; margin: 1rem 0; overflow-x: auto; border-collapse: collapse; }
+      .prose-doc th, .prose-doc td { border: 1px solid #e2e8f0; padding: 0.65rem 0.8rem; text-align: left; }
+      .prose-doc th { background: #f8fafc; color: #334155; }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800">
+    <header class="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-3 shadow-sm sm:px-6">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-3">
+            <div class="min-w-0">
+                <p class="truncate text-sm font-bold text-slate-900">${escapeHtml(APP_NAME)}</p>
+                <p class="truncate text-xs text-slate-400">${escapeHtml(pageDescription)}</p>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+                <a href="${backUrl}?lang=${language}" class="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200">${pageCopy.back}</a>
+                <a href="${downloadUrl}" class="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">${pageCopy.download}</a>
+                <div class="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 text-[10px] font-bold">
+                  <a href="?lang=id" class="rounded-md px-2 py-1 ${language === "id" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-400 hover:text-slate-700"}">ID</a>
+                  <a href="?lang=en" class="rounded-md px-2 py-1 ${language === "en" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-400 hover:text-slate-700"}">EN</a>
+                </div>
+            </div>
+        </div>
+    </header>
+    <main class="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">${escapeHtml(pageTitle)}</h1>
+                <p class="mt-1 text-sm text-slate-500">${escapeHtml(pageDescription)}</p>
+            </div>
+              <span class="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">${pageCopy.public}</span>
+        </div>
+        ${
+          isMarkdown
+            ? `<article id="documentContent" class="prose-doc rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8"></article>`
+            : `<div class="relative"><button id="copySource" type="button" class="absolute right-3 top-3 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-white/20 hover:text-white">${pageCopy.copy}</button><pre class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950 p-5 text-sm leading-relaxed text-slate-100 shadow-sm"><code id="sourceCode" class="language-${escapeHtml(document.language || "text")}">${escapeHtml(source)}</code></pre></div>`
+        }
+    </main>
+    ${
+      isMarkdown
+        ? `<script>
+        const source = ${sourceJson};
+        document.getElementById('documentContent').innerHTML = marked.parse(source);
+      </script>`
+        : `<script>
+        document.getElementById('copySource').addEventListener('click', async () => {
+          await navigator.clipboard.writeText(document.getElementById('sourceCode').textContent);
+          document.getElementById('copySource').textContent = '${pageCopy.copied}';
+        });
+      </script>`
+    }
+</body>
+</html>`;
+}
+
+function sendPublicDocumentFile(req, res, documentKey) {
+  const document = PUBLIC_DOCUMENT_FILES[documentKey];
+  const language = req.query.lang === "en" ? "en" : "id";
+  const sourceFile = document?.fileByLanguage?.[language] || document?.file;
+  if (!sourceFile || !fs.existsSync(sourceFile)) {
+    return res.status(404).send("Dokumentasi tidak ditemukan");
+  }
+
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${path.basename(sourceFile)}"`,
+  );
+  return res.sendFile(sourceFile);
 }
 
 function renderSuccessPage(title, body, requestId, isError) {
@@ -8696,7 +11361,12 @@ function renderSuccessPage(title, body, requestId, isError) {
 }
 
 function renderManualShell({ role, username, backHref, content }) {
-  const fileSlug = "panduan-" + role.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const fileSlug =
+    "panduan-" +
+    role
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
   return `<!doctype html>
 <html lang="id">
 <head>
@@ -8799,84 +11469,141 @@ function renderUserManualPage(user) {
 
         ${renderManualToc(sections)}
 
-        ${renderManualSection("mulai", "Mulai: Login &amp; Daftar", `
+        ${renderManualSection(
+          "mulai",
+          "Mulai: Login &amp; Daftar",
+          `
             <p>Buka halaman <code class="rounded bg-slate-100 px-1 py-0.5">/app/login</code>. Kalau belum punya akun, klik tab <strong>Daftar</strong> dan isi username, password, serta nomor WhatsApp aktif kamu (dipakai untuk menerima API key &amp; notifikasi penting).</p>
             <p>Di kolom password ada ikon mata — klik untuk menampilkan/menyembunyikan ketikan password, baik saat login maupun daftar.</p>
             <p>Setelah login, kamu masuk ke Portal Pengguna. Tiap kali pindah halaman, alamat di browser ikut berubah (mis. <code class="rounded bg-slate-100 px-1 py-0.5">#broadcast</code>) tanpa reload — jadi tombol back/forward browser tetap berfungsi normal.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("akun-wag", "Akun WAG (Sambungkan WhatsApp)", `
+        ${renderManualSection(
+          "akun-wag",
+          "Akun WAG (Sambungkan WhatsApp)",
+          `
             <p>Ini halaman utama setelah login. Klik <strong>+ Request Akun WAG</strong> untuk minta 1 slot akun WhatsApp baru (jumlah maksimum akun tergantung paket kamu — lihat bagian Paket Langganan).</p>
             <p>Permintaan akun baru harus <strong>disetujui admin</strong> dulu sebelum QR-nya muncul. Setelah disetujui, kembali ke halaman ini dan klik akun tersebut untuk memindai QR pakai aplikasi WhatsApp di HP kamu (Perangkat Tertaut &rarr; Tautkan Perangkat).</p>
             <p>Kartu tiap akun menampilkan status (Menunggu QR / Terhubung / Terputus) dan tombol <strong>Hapus</strong> untuk memutus &amp; menghapus akun itu.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("uji-api-docs", "Uji API &amp; Dokumentasi API", `
+        ${renderManualSection(
+          "uji-api-docs",
+          "Uji API &amp; Dokumentasi API",
+          `
             <p><strong>Dokumentasi API</strong> berisi API key kamu (hanya ditampilkan sebagian/prefix di layar — key lengkap <em>hanya dikirim lewat WhatsApp</em> ke nomor terdaftar kamu, tidak pernah tampil penuh di browser). Ada tombol salin untuk prefix key, dan contoh <code class="rounded bg-slate-100 px-1 py-0.5">curl</code> siap pakai untuk tiap endpoint (kirim pesan, kirim gambar/file, cek status, ambil QR).</p>
             <p>Kalau lupa atau butuh API key baru, kamu <strong>tidak bisa generate sendiri</strong> — klik tombol "Minta API Key ke Admin lewat WhatsApp" yang otomatis membuka chat ke admin.</p>
             <p><strong>Uji API</strong> adalah form untuk mencoba langsung endpoint <code class="rounded bg-slate-100 px-1 py-0.5">POST /api/external/send</code> dari browser, persis seperti kalau dipanggil dari kode/aplikasi luar. Isi API key, pilih akun pengirim (opsional), nomor tujuan, dan pesan — atau pilih dari dropdown <strong>Pilih dari kontak</strong> / <strong>Pakai template</strong> supaya tidak perlu ngetik manual. Key yang kamu masukkan di sini tidak disimpan di server.</p>
             <p>Bagian Dokumentasi juga menjelaskan <strong>Webhook Pesan Masuk</strong>: kalau kamu isi URL webhook, setiap ada chat masuk ke akun WAG kamu, sistem otomatis kirim <code class="rounded bg-slate-100 px-1 py-0.5">POST</code> berisi JSON pesan itu ke URL tersebut (berguna untuk integrasi CRM/auto-reply eksternal).</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("broadcast", "Broadcast Pesan", `
+        ${renderManualSection(
+          "broadcast",
+          "Broadcast Pesan",
+          `
             <p>Kirim satu pesan ke banyak nomor sekaligus lewat antrean internal (tidak flood/spam sekaligus). Nomor tujuan bisa ditulis manual (pisah koma atau baris baru) dan/atau pilih <strong>Grup Kontak</strong> yang sudah kamu simpan di halaman Kontak.</p>
             <p>Pakai placeholder <code class="rounded bg-slate-100 px-1 py-0.5">{{nama}}</code> di isi pesan supaya tiap penerima disapa dengan namanya masing-masing — placeholder ini hanya terisi untuk tujuan yang berasal dari grup kontak (karena nomor manual tidak punya data nama). Ada juga dropdown <strong>Pakai template</strong> untuk langsung isi pesan dari Template yang sudah dibuat.</p>
             <p>Jumlah broadcast per hari ikut memotong kuota harian pesan sesuai paket kamu.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("schedule", "Jadwalkan Pesan", `
+        ${renderManualSection(
+          "schedule",
+          "Jadwalkan Pesan",
+          `
             <p>Atur pesan supaya terkirim otomatis di waktu tertentu di masa depan. Isi nomor tujuan (atau pilih dari <strong>Pilih kontak</strong>), pesan (atau <strong>Pakai template</strong>), dan waktu kirim.</p>
             <p>Kuota &amp; masa aktif paket dicek ulang <strong>saat pesan benar-benar dikirim</strong>, bukan saat dijadwalkan — jadi kalau paket kamu habis sebelum waktunya tiba, pesan itu akan gagal terkirim (statusnya berubah jadi "failed").</p>
             <p>Daftar di bawah form menampilkan semua pesan terjadwal beserta statusnya (pending/sent/failed/cancelled). Pesan yang masih "pending" bisa dibatalkan lewat tombol <strong>Batalkan</strong>.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("contacts", "Kontak &amp; Template", `
+        ${renderManualSection(
+          "contacts",
+          "Kontak &amp; Template",
+          `
             <p>Halaman ini punya 2 sub-tab:</p>
             <p><strong>Kontak</strong> — buku alamat pribadi kamu. Simpan nama, nomor WA, dan grup (opsional) supaya tidak perlu ketik ulang nomor tiap kirim pesan. Bisa juga import banyak kontak sekaligus. Kontak individual dipakai sebagai pilihan cepat di form Uji API dan Jadwalkan Pesan; grup kontak dipakai sebagai pilihan tujuan massal di Broadcast.</p>
             <p><strong>Template Pesan</strong> — simpan format pesan yang sering dipakai (promo, reminder, dsb) supaya tidak ngetik dari nol. Mendukung placeholder <code class="rounded bg-slate-100 px-1 py-0.5">{{nama}}</code> dan <code class="rounded bg-slate-100 px-1 py-0.5">{{nomor}}</code> yang otomatis diganti data penerima saat dipakai lewat Broadcast (dengan grup kontak).</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("autoreply", "Balas Otomatis", `
+        ${renderManualSection(
+          "autoreply",
+          "Balas Otomatis",
+          `
             <p>Buat aturan supaya akun WAG kamu otomatis membalas pesan masuk yang mengandung kata kunci tertentu — cocok untuk FAQ, jam operasional, dsb.</p>
             <p>Tiap aturan punya: <strong>Kata Kunci</strong>, <strong>Cara Cocok</strong> (mengandung kata / sama persis / diawali kata), <strong>Berlaku di Akun</strong> (bisa semua akun WAG kamu atau salah satu saja), dan <strong>Isi Balasan</strong> (mendukung <code class="rounded bg-slate-100 px-1 py-0.5">{{nama}}</code>).</p>
             <p>Klik <strong>Edit</strong> pada aturan yang sudah ada untuk mengubah semua bagiannya (bukan cuma aktif/nonaktif) — form yang sama dipakai ulang, lengkap dengan tombol Batal. Balas otomatis tetap memotong kuota kirim harian kamu.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("inbox", "Pesan Masuk", `
+        ${renderManualSection(
+          "inbox",
+          "Pesan Masuk",
+          `
             <p>Menampilkan riwayat pesan WhatsApp yang <strong>masuk</strong> ke akun WAG kamu (bukan yang kamu kirim) — berguna untuk memantau balasan pelanggan tanpa buka HP. Jumlah yang disimpan dibatasi (entri terlama otomatis dibuang kalau sudah penuh).</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("plans", "Paket Langganan", `
+        ${renderManualSection(
+          "plans",
+          "Paket Langganan",
+          `
             <p>Paket <strong>Free</strong>: 1 akun WAG, 10 pesan/hari, tanpa masa berlaku (selamanya, selama tidak melanggar aturan). Paket <strong>Pro</strong> dan <strong>Max</strong> memberi kuota pesan/hari &amp; jumlah akun WAG lebih banyak, berlaku 30 hari sejak diaktifkan admin.</p>
             <p>Klik paket yang diinginkan untuk membuka halaman upgrade — di sana ada tombol chat WhatsApp ke admin untuk konfirmasi pembayaran (tidak ada payment gateway otomatis, semua dikonfirmasi manual oleh admin).</p>
             <p><strong>Penting:</strong> kalau paket berbayar kamu habis masa aktifnya, akun <strong>tidak otomatis turun ke Free</strong>. Fitur kirim pesan &amp; request akun baru akan diblokir sementara (kuota jadi 0) sampai admin memperpanjang, atau kamu balas "2" di chat WhatsApp pengingat untuk memilih turun ke Free secara sadar.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("embed", "Embed Widget QR", `
+        ${renderManualSection(
+          "embed",
+          "Embed Widget QR",
+          `
             <p>Menyediakan potongan kode (HTML) untuk ditempel di website lain, menampilkan status &amp; QR scan salah satu akun WAG kamu secara live — misalnya untuk halaman "Hubungi Kami via WhatsApp" di toko online kamu sendiri.</p>
             <p>Kalau alamat gateway ini masih memakai <code class="rounded bg-slate-100 px-1 py-0.5">localhost</code>, kode itu cuma jalan di komputer ini — minta admin isi "URL Publik" di Pengaturan supaya bisa dipakai dari website lain.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("history", "Riwayat Kirim", `
+        ${renderManualSection(
+          "history",
+          "Riwayat Kirim",
+          `
             <p>Log semua pesan yang pernah kamu kirim (manual, broadcast, terjadwal, auto-reply) beserta statusnya. Bisa diexport ke CSV untuk dibuka di Excel/Spreadsheet.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("mobile-nav", "Navigasi di HP", `
+        ${renderManualSection(
+          "mobile-nav",
+          "Navigasi di HP",
+          `
             <p>Di layar HP, menu utama ada di <strong>bar bawah</strong> (Akun, Broadcast, Terjadwal, Kontak). Tombol <strong>Lainnya</strong> membuka panel dari bawah berisi menu sisanya (Uji API, Balas Otomatis, Pesan Masuk, Paket, Embed QR, Riwayat, Dokumentasi, Keluar).</p>
             <p>Panel "Lainnya" itu bisa ditutup dengan cara digeser ke bawah (tarik bagian tuas abu-abu di atasnya, pakai jari), diklik area gelap di sekitarnya, atau otomatis tertutup begitu kamu pilih salah satu menunya.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("faq", "Tanya Jawab Singkat", `
+        ${renderManualSection(
+          "faq",
+          "Tanya Jawab Singkat",
+          `
             <ul class="list-disc space-y-1.5 pl-5">
                 <li><strong>Kenapa API key saya tidak pernah terlihat lengkap di layar?</strong> Untuk keamanan — key lengkap cuma dikirim sekali lewat WhatsApp ke nomor terdaftar. Simpan baik-baik.</li>
                 <li><strong>Kenapa tidak bisa generate API key sendiri?</strong> Regenerasi key sengaja dibuat admin-only supaya tidak sembarang orang bisa mematikan integrasi yang sedang berjalan.</li>
                 <li><strong>Pesan gagal terkirim, kenapa?</strong> Cek status akun WAG (harus "Terhubung"), sisa kuota harian, dan format nomor tujuan (pakai kode negara, contoh 628123456789 tanpa tanda + atau spasi).</li>
                 <li><strong>Paket saya habis tapi saya belum sempat bayar, apa yang terjadi?</strong> Kirim pesan &amp; request akun baru diblokir sementara, tapi data &amp; pengaturan kamu tetap aman — tinggal minta admin perpanjang.</li>
             </ul>
-        `)}
+        `,
+        )}
     `;
 
-  return renderManualShell({ role: "Pengguna", username: user?.username, backHref: "/app", content });
+  return renderManualShell({
+    role: "Pengguna",
+    username: user?.username,
+    backHref: "/app",
+    content,
+  });
 }
 
 function renderAdminManualPage() {
@@ -8894,18 +11621,24 @@ function renderAdminManualPage() {
     { id: "faq", title: "Tanya Jawab Singkat" },
   ];
 
-  const settingsTable = SETTINGS_GROUPS.map((group) => `
+  const settingsTable = SETTINGS_GROUPS.map(
+    (group) => `
         <div class="mt-3 break-inside-avoid">
             <p class="text-sm font-semibold text-slate-800">${escapeHtml(group.label)}</p>
             <table class="mt-1.5 w-full text-xs">
                 <tbody class="divide-y divide-slate-100">
-                    ${group.fields.map((f) => `<tr>
+                    ${group.fields
+                      .map(
+                        (f) => `<tr>
                         <td class="w-1/3 py-1.5 pr-3 align-top font-medium text-slate-600">${escapeHtml(f.label)}</td>
                         <td class="py-1.5 align-top text-slate-500">${escapeHtml(f.help || "-")}</td>
-                    </tr>`).join("")}
+                    </tr>`,
+                      )
+                      .join("")}
                 </tbody>
             </table>
-        </div>`).join("");
+        </div>`,
+  ).join("");
 
   const content = `
         <h1 class="text-2xl font-bold text-slate-900">Panduan Admin</h1>
@@ -8913,43 +11646,78 @@ function renderAdminManualPage() {
 
         ${renderManualToc(sections)}
 
-        ${renderManualSection("mulai", "Login Admin", `
+        ${renderManualSection(
+          "mulai",
+          "Login Admin",
+          `
             <p>Buka halaman <code class="rounded bg-slate-100 px-1 py-0.5">/login</code> dan masuk pakai akun admin. Dashboard admin terpisah total dari Portal Pengguna (<code class="rounded bg-slate-100 px-1 py-0.5">/app</code>) — akun admin tidak ikut aturan paket/kuota seperti akun user biasa.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("dashboard", "Dashboard &amp; Akun WhatsApp Admin", `
+        ${renderManualSection(
+          "dashboard",
+          "Dashboard &amp; Akun WhatsApp Admin",
+          `
             <p>Menampilkan semua akun WhatsApp milik <strong>admin sendiri</strong> (berbeda dari akun WAG milik masing-masing user). Dari sini kamu bisa tambah akun WhatsApp baru untuk dipakai fitur Kirim Pesan/Broadcast/Balas Otomatis milik admin, scan QR-nya, dan memutuskannya.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("kirim", "Kirim Pesan", `
+        ${renderManualSection(
+          "kirim",
+          "Kirim Pesan",
+          `
             <p>Kirim pesan manual satu-satu lewat salah satu akun WhatsApp admin — berguna untuk testing cepat atau balas manual ke pelanggan.</p>
             <p>Kalau muncul error <code class="rounded bg-slate-100 px-1 py-0.5">not-acceptable</code>, itu bukan bug aplikasi — itu penolakan mentah dari server WhatsApp sendiri (biasanya karena versi protokol yang perlu diperbarui, masalah identitas LID, atau sesi perlu di-scan ulang). Coba hapus &amp; scan ulang akun tersebut di Dashboard.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("broadcast", "Broadcast", `
+        ${renderManualSection(
+          "broadcast",
+          "Broadcast",
+          `
             <p>Sama seperti Broadcast di sisi user, tapi memakai akun WhatsApp milik admin dan tidak dibatasi kuota paket.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("schedule", "Terjadwal", `
+        ${renderManualSection(
+          "schedule",
+          "Terjadwal",
+          `
             <p>Jadwalkan pesan admin untuk terkirim otomatis di waktu tertentu, memakai akun WhatsApp admin.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("autoreply", "Balas Otomatis (Akun Admin)", `
+        ${renderManualSection(
+          "autoreply",
+          "Balas Otomatis (Akun Admin)",
+          `
             <p>Sama seperti Balas Otomatis di sisi user, tapi <strong>khusus untuk akun WhatsApp milik admin</strong> (mis. nomor CS resmi bisnis) — aturan di sini terpisah total dari aturan balas otomatis milik masing-masing user, dan tidak dipotong kuota apa pun.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("history-logs", "Riwayat &amp; Logs", `
+        ${renderManualSection(
+          "history-logs",
+          "Riwayat &amp; Logs",
+          `
             <p><strong>Riwayat</strong> mencatat semua pesan yang dikirim lewat akun admin. <strong>Logs</strong> menampilkan log teknis server (koneksi WhatsApp, error, dsb) — berguna untuk troubleshooting.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("requests", "Persetujuan", `
+        ${renderManualSection(
+          "requests",
+          "Persetujuan",
+          `
             <p>Halaman ini menggabungkan 3 hal:</p>
             <p><strong>Notifikasi WhatsApp &amp; Harga Paket</strong> — pilih akun WhatsApp admin mana yang dipakai mengirim notifikasi otomatis sistem, nomor WA admin tujuan notifikasi, dan harga paket Pro/Max yang ditampilkan ke user.</p>
             <p><strong>Metode Pembayaran &amp; Auto-Reply</strong> — begitu ada chat masuk ke akun notifikasi yang menyebut "upgrade paket", bot otomatis membalas menu metode pembayaran (DANA/QRIS/Mandiri) sesuai data yang kamu isi di sini, termasuk gambar QRIS.</p>
             <p><strong>Permintaan Akun WAG Menunggu Persetujuan</strong> — daftar permintaan akun WAG baru dari user. Akun baru <strong>tidak akan aktif</strong> (tidak muncul QR-nya) sampai kamu approve di sini.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("users", "Pengguna", `
+        ${renderManualSection(
+          "users",
+          "Pengguna",
+          `
             <p>Daftar semua user terdaftar beserta jumlah akun WAG, pemakaian pesan hari ini, paket, dan tanggal kadaluarsa (merah kalau sudah lewat). Badge kuning menandakan user sudah minta upgrade sendiri lewat portalnya.</p>
             <p>Untuk tiap user tersedia 3 aksi:</p>
             <ul class="list-disc space-y-1 pl-5">
@@ -8958,49 +11726,82 @@ function renderAdminManualPage() {
                 <li><strong>Hapus</strong> — hapus akun user beserta seluruh datanya.</li>
             </ul>
             <p><strong>Penting:</strong> kalau paket berbayar user lewat masa aktifnya, sistem <strong>tidak otomatis menurunkan ke Free</strong> — fitur kirim &amp; request akun baru diblokir sementara sampai kamu perpanjang manual di sini.</p>
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("settings", "Pengaturan", `
+        ${renderManualSection(
+          "settings",
+          "Pengaturan",
+          `
             <p>Semua konfigurasi server (isi file <code class="rounded bg-slate-100 px-1 py-0.5">.env</code>) bisa diubah lewat halaman ini tanpa edit file manual, dikelompokkan per kategori dan bisa dicari. Sebagian pengaturan butuh restart server manual (mis. layanan Windows "Wag") supaya berlaku.</p>
             ${settingsTable}
-        `)}
+        `,
+        )}
 
-        ${renderManualSection("faq", "Tanya Jawab Singkat", `
+        ${renderManualSection(
+          "faq",
+          "Tanya Jawab Singkat",
+          `
             <ul class="list-disc space-y-1.5 pl-5">
                 <li><strong>User komplain fitur baru belum muncul padahal sudah di-deploy?</strong> Pastikan service aplikasi sudah di-restart setelah update kode (mis. <code class="rounded bg-slate-100 px-1 py-0.5">Restart-Service -Name "Wag" -Force</code> di server Windows).</li>
                 <li><strong>Kenapa akun user baru tidak muncul QR-nya?</strong> Harus di-approve dulu lewat tab Persetujuan.</li>
                 <li><strong>User minta API key baru, harus ke mana?</strong> Tab Pengguna &rarr; tombol Reset API Key pada baris user tersebut.</li>
                 <li><strong>Boleh menurunkan paket user yang belum bayar ke Free langsung?</strong> Sistem sengaja tidak melakukan ini otomatis. Kalau memang perlu, ubah manual lewat Simpan Paket setelah dikonfirmasi ke user.</li>
             </ul>
-        `)}
+        `,
+        )}
     `;
 
-  return renderManualShell({ role: "Admin", username: null, backHref: "/", content });
+  return renderManualShell({
+    role: "Admin",
+    username: null,
+    backHref: "/",
+    content,
+  });
 }
 
-app.get("/", requireAdminSession, (req, res) => {
+// app.get("/", requireAdminSession, (req, res) => {
+//   res.setHeader("Cache-Control", "no-store");
+//   res.send(renderHomePage());
+// });
+app.get("/", async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  res.send(renderHomePage());
+
+  const cookies = parseCookies(req);
+  const webSession = await findWebSession(cookies.wa_admin_sid, "admin").catch(
+    () => null,
+  );
+
+  // Belum login -> tampilkan landing, bukan paksa ke /login
+  if (!webSession) {
+    return res.redirect(302, "/landing");
+  }
+
+  req.admin = { id: webSession.subjectId };
+  return res.send(renderHomePage());
 });
 
 app.get("/login", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  res.send(renderAdminLoginPage());
+  res.send(renderAdminOnlyLoginPage());
+});
+
+app.get("/landing", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "public", "landing.html"));
 });
 
 app.get("/app/login", (req, res) => {
-  res.setHeader("Cache-Control", "no-store");
-  res.send(renderUserLoginPage());
+  res.redirect(302, "/login");
 });
 
-app.get("/app", requireUserSession, (req, res) => {
+app.get("/app", requireAdminSession, (req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  res.send(renderUserPortalPage(req.user));
+  res.redirect(302, "/");
 });
 
-app.get("/app/manual", requireUserSession, (req, res) => {
-  res.setHeader("Cache-Control", "no-store");
-  res.send(renderUserManualPage(req.user));
+app.get("/app/manual", requireAdminSession, (req, res) => {
+  res.redirect(302, "/manual");
 });
 
 app.get("/manual", requireAdminSession, (req, res) => {
@@ -9008,19 +11809,17 @@ app.get("/manual", requireAdminSession, (req, res) => {
   res.send(renderAdminManualPage());
 });
 
-app.get("/app/upgrade/:plan", requireUserSession, (req, res) => {
-  const plan = req.params.plan;
-
-  if (!PLAN_DEFS[plan] || plan === "free") {
-    return res.redirect(302, "/app");
-  }
-
-  res.setHeader("Cache-Control", "no-store");
-  res.send(renderUpgradePlanPage(req.user, plan));
+app.get("/app/upgrade/:plan", requireAdminSession, (req, res) => {
+  res.redirect(302, "/");
 });
 
 app.get("/send-form", (req, res) => {
   res.redirect(302, "/#send");
+});
+
+app.get("/developers", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.send(renderDeveloperLandingPage(req));
 });
 
 app.get("/docs", (req, res) => {
@@ -9028,16 +11827,64 @@ app.get("/docs", (req, res) => {
   res.send(renderDocsPage(req));
 });
 
+app.get("/docs/api-reference", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.send(renderPublicDocumentPage(req, "api-reference"));
+});
+
+app.get("/docs/integration", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.send(renderPublicDocumentPage(req, "integration"));
+});
+
+app.get("/docs/client/laravel", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.send(renderPublicDocumentPage(req, "client/laravel"));
+});
+
+app.get("/docs/client/express", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.send(renderPublicDocumentPage(req, "client/express"));
+});
+
+app.get("/docs/client/python", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.send(renderPublicDocumentPage(req, "client/python"));
+});
+
+app.get("/docs/download/api-reference", (req, res) =>
+  sendPublicDocumentFile(req, res, "api-reference"),
+);
+app.get("/docs/download/integration", (req, res) =>
+  sendPublicDocumentFile(req, res, "integration"),
+);
+app.get("/docs/download/client/laravel", (req, res) =>
+  sendPublicDocumentFile(req, res, "client/laravel"),
+);
+app.get("/docs/download/client/express", (req, res) =>
+  sendPublicDocumentFile(req, res, "client/express"),
+);
+app.get("/docs/download/client/python", (req, res) =>
+  sendPublicDocumentFile(req, res, "client/python"),
+);
+
 app.get("/widget", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.sendFile(path.join(__dirname, "public", "widget-qr.html"));
 });
 
 function wantsJson(req) {
-  return Boolean(req.get("accept") && req.get("accept").includes("application/json"));
+  return Boolean(
+    req.get("accept") && req.get("accept").includes("application/json"),
+  );
 }
 
-function sendFormResult(req, res, statusCode, { success, title, plainMessage, requestId }) {
+function sendFormResult(
+  req,
+  res,
+  statusCode,
+  { success, title, plainMessage, requestId },
+) {
   if (wantsJson(req)) {
     return res.status(statusCode).json({
       success,
@@ -9048,163 +11895,180 @@ function sendFormResult(req, res, statusCode, { success, title, plainMessage, re
 
   return res
     .status(statusCode)
-    .send(renderSuccessPage(title, escapeHtml(plainMessage), requestId, !success));
+    .send(
+      renderSuccessPage(title, escapeHtml(plainMessage), requestId, !success),
+    );
 }
 
-app.post("/send-message", (req, res, next) => {
-  upload.single("file")(req, res, (err) => {
-    if (err) {
-      const message =
-        err.code === "LIMIT_FILE_SIZE"
-          ? `Ukuran file melebihi batas ${Math.round(MAX_FILE_SIZE_BYTES / 1024 / 1024)}MB`
-          : err.message;
+app.post(
+  "/send-message",
+  (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err) {
+        const message =
+          err.code === "LIMIT_FILE_SIZE"
+            ? `Ukuran file melebihi batas ${Math.round(MAX_FILE_SIZE_BYTES / 1024 / 1024)}MB`
+            : err.message;
 
-      logger.warn(`[${req.id}] Upload file form gagal`, { error: message });
+        logger.warn(`[${req.id}] Upload file form gagal`, { error: message });
+
+        return sendFormResult(req, res, 400, {
+          success: false,
+          title: "Input tidak valid",
+          plainMessage: message,
+          requestId: req.id,
+        });
+      }
+
+      return next();
+    });
+  },
+  async (req, res) => {
+    let jid;
+    let message;
+
+    try {
+      jid = normalizeRecipient(req.body.number);
+      message = normalizeOptionalCaption(req.body.message);
+
+      if (!req.file && !message) {
+        throw new Error("Isi pesan atau lampirkan file terlebih dahulu");
+      }
+
+      if (!req.file) {
+        message = normalizeMessage(message);
+      }
+    } catch (error) {
+      logger.warn(`[${req.id}] Validasi form gagal`, {
+        error: error.message,
+      });
 
       return sendFormResult(req, res, 400, {
         success: false,
         title: "Input tidak valid",
-        plainMessage: message,
+        plainMessage: error.message,
         requestId: req.id,
       });
     }
 
-    return next();
-  });
-}, async (req, res) => {
-  let jid;
-  let message;
-
-  try {
-    jid = normalizeRecipient(req.body.number);
-    message = normalizeOptionalCaption(req.body.message);
-
-    if (!req.file && !message) {
-      throw new Error("Isi pesan atau lampirkan file terlebih dahulu");
+    const maskedJid = maskDestination(jid);
+    const session = resolveSessionOrRespond(req, res);
+    if (!session) {
+      return;
     }
 
-    if (!req.file) {
-      message = normalizeMessage(message);
-    }
-  } catch (error) {
-    logger.warn(`[${req.id}] Validasi form gagal`, {
-      error: error.message,
-    });
-
-    return sendFormResult(req, res, 400, {
-      success: false,
-      title: "Input tidak valid",
-      plainMessage: error.message,
-      requestId: req.id,
-    });
-  }
-
-  const maskedJid = maskDestination(jid);
-  const session = resolveSessionOrRespond(req, res);
-  if (!session) {
-    return;
-  }
-
-  if (!session.isConnected || !session.sock) {
-    logger.warn(`[${req.id}] WhatsApp belum terhubung`, { to: maskedJid, session: session.id });
-    return sendFormResult(req, res, 503, {
-      success: false,
-      title: "WhatsApp belum terhubung",
-      plainMessage: "Silakan buka halaman utama dan scan QR terlebih dahulu.",
-      requestId: req.id,
-    });
-  }
-
-  try {
-    const [check] = await session.sock.onWhatsApp(jid);
-    if (!check?.exists) {
-      logger.warn(`[${req.id}] Nomor tidak terdaftar di WhatsApp`, {
+    if (!session.isConnected || !session.sock) {
+      logger.warn(`[${req.id}] WhatsApp belum terhubung`, {
         to: maskedJid,
+        session: session.id,
       });
-
-      return sendFormResult(req, res, 422, {
+      return sendFormResult(req, res, 503, {
         success: false,
-        title: "Nomor tidak valid",
-        plainMessage: "Nomor tujuan tidak terdaftar di WhatsApp.",
+        title: "WhatsApp belum terhubung",
+        plainMessage: "Silakan buka halaman utama dan scan QR terlebih dahulu.",
         requestId: req.id,
       });
     }
-  } catch (error) {
-    logger.warn(`[${req.id}] Gagal cek status nomor WhatsApp, lanjut kirim tanpa validasi`, {
+
+    try {
+      const [check] = await session.sock.onWhatsApp(jid);
+      if (!check?.exists) {
+        logger.warn(`[${req.id}] Nomor tidak terdaftar di WhatsApp`, {
+          to: maskedJid,
+        });
+
+        return sendFormResult(req, res, 422, {
+          success: false,
+          title: "Nomor tidak valid",
+          plainMessage: "Nomor tujuan tidak terdaftar di WhatsApp.",
+          requestId: req.id,
+        });
+      }
+    } catch (error) {
+      logger.warn(
+        `[${req.id}] Gagal cek status nomor WhatsApp, lanjut kirim tanpa validasi`,
+        {
+          to: maskedJid,
+          error: error.message,
+        },
+      );
+    }
+
+    const content = req.file
+      ? buildMediaMessage(req.file, message)
+      : { text: message };
+
+    logger.info(`[${req.id}] Form kirim pesan`, {
       to: maskedJid,
-      error: error.message,
-    });
-  }
-
-  const content = req.file ? buildMediaMessage(req.file, message) : { text: message };
-
-  logger.info(`[${req.id}] Form kirim pesan`, {
-    to: maskedJid,
-    session: session.id,
-    hasFile: Boolean(req.file),
-    fileName: req.file?.originalname,
-    messageLength: message.length,
-    queueDepth: session.sendQueue.length,
-    activeSendCount: session.activeSendCount,
-  });
-
-  try {
-    const { result, queueDelayMs, sendDurationMs } = await enqueueMessageSend(session, {
-      jid,
-      content,
+      session: session.id,
+      hasFile: Boolean(req.file),
+      fileName: req.file?.originalname,
+      messageLength: message.length,
+      queueDepth: session.sendQueue.length,
+      activeSendCount: session.activeSendCount,
     });
 
-    logger.info(`[${req.id}] Pesan form terkirim`, {
-      to: maskedJid,
-      queueDelayMs,
-      sendDurationMs,
-    });
+    try {
+      const { result, queueDelayMs, sendDurationMs } = await enqueueMessageSend(
+        session,
+        {
+          jid,
+          content,
+        },
+      );
 
-    recordHistory({
-      source: "form",
-      sessionId: session.id,
-      to: maskedJid,
-      type: req.file ? (message ? "file+text" : "file") : "text",
-      message: (message || "").slice(0, 120),
-      status: "sent",
-      messageId: result?.key?.id,
-      requestId: req.id,
-    });
+      logger.info(`[${req.id}] Pesan form terkirim`, {
+        to: maskedJid,
+        queueDelayMs,
+        sendDurationMs,
+      });
 
-    return sendFormResult(req, res, 200, {
-      success: true,
-      title: "Pesan berhasil terkirim",
-      plainMessage: `Pesan${req.file ? " (dengan file)" : ""} telah dikirim ke ${maskedJid}.`,
-      requestId: req.id,
-    });
-  } catch (error) {
-    logger.error(`[${req.id}] Gagal kirim dari form`, {
-      to: maskedJid,
-      error: error.message,
-      stack: error.stack,
-    });
+      recordHistory({
+        source: "form",
+        sessionId: session.id,
+        to: maskedJid,
+        type: req.file ? (message ? "file+text" : "file") : "text",
+        message: (message || "").slice(0, 120),
+        status: "sent",
+        messageId: result?.key?.id,
+        requestId: req.id,
+      });
 
-    recordHistory({
-      source: "form",
-      sessionId: session.id,
-      to: maskedJid,
-      type: req.file ? (message ? "file+text" : "file") : "text",
-      message: (message || "").slice(0, 120),
-      status: "failed",
-      error: error.message,
-      requestId: req.id,
-    });
+      return sendFormResult(req, res, 200, {
+        success: true,
+        title: "Pesan berhasil terkirim",
+        plainMessage: `Pesan${req.file ? " (dengan file)" : ""} telah dikirim ke ${maskedJid}.`,
+        requestId: req.id,
+      });
+    } catch (error) {
+      logger.error(`[${req.id}] Gagal kirim dari form`, {
+        to: maskedJid,
+        error: error.message,
+        stack: error.stack,
+      });
 
-    const statusCode = error.code === "NOT_CONNECTED" ? 503 : 500;
+      recordHistory({
+        source: "form",
+        sessionId: session.id,
+        to: maskedJid,
+        type: req.file ? (message ? "file+text" : "file") : "text",
+        message: (message || "").slice(0, 120),
+        status: "failed",
+        error: error.message,
+        requestId: req.id,
+      });
 
-    return sendFormResult(req, res, statusCode, {
-      success: false,
-      title: "Pengiriman gagal",
-      plainMessage: error.message,
-      requestId: req.id,
-    });
-  }
-});
+      const statusCode = error.code === "NOT_CONNECTED" ? 503 : 500;
+
+      return sendFormResult(req, res, statusCode, {
+        success: false,
+        title: "Pengiriman gagal",
+        plainMessage: error.message,
+        requestId: req.id,
+      });
+    }
+  },
+);
 
 app.post("/api/send", async (req, res) => {
   const clientIp = getClientIp(req);
@@ -9263,11 +12127,14 @@ app.post("/api/send", async (req, res) => {
       });
     }
   } catch (error) {
-    logger.warn(`[${req.id}] Gagal cek status nomor WhatsApp, lanjut kirim tanpa validasi`, {
-      clientIp,
-      to: maskedJid,
-      error: error.message,
-    });
+    logger.warn(
+      `[${req.id}] Gagal cek status nomor WhatsApp, lanjut kirim tanpa validasi`,
+      {
+        clientIp,
+        to: maskedJid,
+        error: error.message,
+      },
+    );
   }
 
   logger.info(`[${req.id}] API kirim pesan`, {
@@ -9281,10 +12148,13 @@ app.post("/api/send", async (req, res) => {
   });
 
   try {
-    const { result, queueDelayMs, sendDurationMs } = await enqueueMessageSend(session, {
-      jid,
-      content: { text: message },
-    });
+    const { result, queueDelayMs, sendDurationMs } = await enqueueMessageSend(
+      session,
+      {
+        jid,
+        content: { text: message },
+      },
+    );
 
     logger.info(`[${req.id}] API pesan terkirim`, {
       clientIp,
@@ -9351,181 +12221,194 @@ app.post("/api/send", async (req, res) => {
   }
 });
 
-app.post("/api/send-file", (req, res, next) => {
-  upload.single("file")(req, res, (err) => {
-    if (err) {
-      const message =
-        err.code === "LIMIT_FILE_SIZE"
-          ? `Ukuran file melebihi batas ${MAX_FILE_SIZE_BYTES} bytes`
-          : err.message;
+app.post(
+  "/api/send-file",
+  (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err) {
+        const message =
+          err.code === "LIMIT_FILE_SIZE"
+            ? `Ukuran file melebihi batas ${MAX_FILE_SIZE_BYTES} bytes`
+            : err.message;
 
-      logger.warn(`[${req.id}] Upload file gagal`, { error: message });
+        logger.warn(`[${req.id}] Upload file gagal`, { error: message });
+
+        return res.status(400).json({
+          success: false,
+          message,
+          requestId: req.id,
+        });
+      }
+
+      return next();
+    });
+  },
+  async (req, res) => {
+    const clientIp = getClientIp(req);
+    let jid;
+    let caption;
+
+    try {
+      jid = normalizeRecipient(req.body.number);
+      caption = normalizeOptionalCaption(req.body.caption);
+    } catch (error) {
+      logger.warn(`[${req.id}] Validasi API send-file gagal`, {
+        clientIp,
+        error: error.message,
+      });
 
       return res.status(400).json({
         success: false,
-        message,
+        message: error.message,
         requestId: req.id,
       });
     }
 
-    return next();
-  });
-}, async (req, res) => {
-  const clientIp = getClientIp(req);
-  let jid;
-  let caption;
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "File wajib diunggah pada field 'file'",
+        requestId: req.id,
+      });
+    }
 
-  try {
-    jid = normalizeRecipient(req.body.number);
-    caption = normalizeOptionalCaption(req.body.caption);
-  } catch (error) {
-    logger.warn(`[${req.id}] Validasi API send-file gagal`, {
-      clientIp,
-      error: error.message,
-    });
+    const maskedJid = maskDestination(jid);
+    const session = resolveSessionOrRespond(req, res);
+    if (!session) {
+      return;
+    }
 
-    return res.status(400).json({
-      success: false,
-      message: error.message,
-      requestId: req.id,
-    });
-  }
+    if (!session.isConnected || !session.sock) {
+      logger.warn(
+        `[${req.id}] API send-file ditolak karena WhatsApp belum terhubung`,
+        {
+          clientIp,
+          to: maskedJid,
+          session: session.id,
+        },
+      );
 
-  if (!req.file) {
-    return res.status(400).json({
-      success: false,
-      message: "File wajib diunggah pada field 'file'",
-      requestId: req.id,
-    });
-  }
+      return res.status(503).json({
+        success: false,
+        message: "WhatsApp belum terhubung",
+        requestId: req.id,
+        queueDepth: session.sendQueue.length,
+      });
+    }
 
-  const maskedJid = maskDestination(jid);
-  const session = resolveSessionOrRespond(req, res);
-  if (!session) {
-    return;
-  }
+    try {
+      const [check] = await session.sock.onWhatsApp(jid);
+      if (!check?.exists) {
+        logger.warn(`[${req.id}] Nomor tidak terdaftar di WhatsApp`, {
+          clientIp,
+          to: maskedJid,
+        });
 
-  if (!session.isConnected || !session.sock) {
-    logger.warn(`[${req.id}] API send-file ditolak karena WhatsApp belum terhubung`, {
+        return res.status(422).json({
+          success: false,
+          message: "Nomor tujuan tidak terdaftar di WhatsApp",
+          requestId: req.id,
+        });
+      }
+    } catch (error) {
+      logger.warn(
+        `[${req.id}] Gagal cek status nomor WhatsApp, lanjut kirim tanpa validasi`,
+        {
+          clientIp,
+          to: maskedJid,
+          error: error.message,
+        },
+      );
+    }
+
+    logger.info(`[${req.id}] API kirim file`, {
       clientIp,
       to: maskedJid,
       session: session.id,
-    });
-
-    return res.status(503).json({
-      success: false,
-      message: "WhatsApp belum terhubung",
-      requestId: req.id,
+      fileName: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      hasCaption: Boolean(caption),
       queueDepth: session.sendQueue.length,
+      activeSendCount: session.activeSendCount,
     });
-  }
 
-  try {
-    const [check] = await session.sock.onWhatsApp(jid);
-    if (!check?.exists) {
-      logger.warn(`[${req.id}] Nomor tidak terdaftar di WhatsApp`, {
+    try {
+      const content = buildMediaMessage(req.file, caption);
+
+      const { result, queueDelayMs, sendDurationMs } = await enqueueMessageSend(
+        session,
+        {
+          jid,
+          content,
+        },
+      );
+
+      logger.info(`[${req.id}] API file terkirim`, {
         clientIp,
         to: maskedJid,
+        messageId: result?.key?.id,
+        queueDelayMs,
+        sendDurationMs,
       });
 
-      return res.status(422).json({
-        success: false,
-        message: "Nomor tujuan tidak terdaftar di WhatsApp",
+      recordHistory({
+        source: "api",
+        sessionId: session.id,
+        to: maskedJid,
+        type: caption ? "file+text" : "file",
+        message: (caption || "").slice(0, 120),
+        status: "sent",
+        messageId: result?.key?.id,
         requestId: req.id,
       });
+
+      return res.json({
+        success: true,
+        message: "File berhasil dikirim",
+        to: maskedJid,
+        requestId: req.id,
+        messageId: result?.key?.id,
+        queueDelayMs,
+        sendDurationMs,
+      });
+    } catch (error) {
+      const isQueueFull = error.message.includes(
+        "Antrean pengiriman sedang penuh",
+      );
+      const statusCode = isQueueFull
+        ? 429
+        : error.code === "NOT_CONNECTED"
+          ? 503
+          : 500;
+
+      logger.error(`[${req.id}] API kirim file gagal`, {
+        clientIp,
+        to: maskedJid,
+        error: error.message,
+        stack: error.stack,
+      });
+
+      recordHistory({
+        source: "api",
+        sessionId: session.id,
+        to: maskedJid,
+        type: caption ? "file+text" : "file",
+        message: (caption || "").slice(0, 120),
+        status: "failed",
+        error: error.message,
+        requestId: req.id,
+      });
+
+      return res.status(statusCode).json({
+        success: false,
+        message: error.message,
+        requestId: req.id,
+        queueDepth: session.sendQueue.length,
+      });
     }
-  } catch (error) {
-    logger.warn(`[${req.id}] Gagal cek status nomor WhatsApp, lanjut kirim tanpa validasi`, {
-      clientIp,
-      to: maskedJid,
-      error: error.message,
-    });
-  }
-
-  logger.info(`[${req.id}] API kirim file`, {
-    clientIp,
-    to: maskedJid,
-    session: session.id,
-    fileName: req.file.originalname,
-    mimetype: req.file.mimetype,
-    size: req.file.size,
-    hasCaption: Boolean(caption),
-    queueDepth: session.sendQueue.length,
-    activeSendCount: session.activeSendCount,
-  });
-
-  try {
-    const content = buildMediaMessage(req.file, caption);
-
-    const { result, queueDelayMs, sendDurationMs } = await enqueueMessageSend(session, {
-      jid,
-      content,
-    });
-
-    logger.info(`[${req.id}] API file terkirim`, {
-      clientIp,
-      to: maskedJid,
-      messageId: result?.key?.id,
-      queueDelayMs,
-      sendDurationMs,
-    });
-
-    recordHistory({
-      source: "api",
-      sessionId: session.id,
-      to: maskedJid,
-      type: caption ? "file+text" : "file",
-      message: (caption || "").slice(0, 120),
-      status: "sent",
-      messageId: result?.key?.id,
-      requestId: req.id,
-    });
-
-    return res.json({
-      success: true,
-      message: "File berhasil dikirim",
-      to: maskedJid,
-      requestId: req.id,
-      messageId: result?.key?.id,
-      queueDelayMs,
-      sendDurationMs,
-    });
-  } catch (error) {
-    const isQueueFull = error.message.includes(
-      "Antrean pengiriman sedang penuh",
-    );
-    const statusCode = isQueueFull
-      ? 429
-      : error.code === "NOT_CONNECTED"
-        ? 503
-        : 500;
-
-    logger.error(`[${req.id}] API kirim file gagal`, {
-      clientIp,
-      to: maskedJid,
-      error: error.message,
-      stack: error.stack,
-    });
-
-    recordHistory({
-      source: "api",
-      sessionId: session.id,
-      to: maskedJid,
-      type: caption ? "file+text" : "file",
-      message: (caption || "").slice(0, 120),
-      status: "failed",
-      error: error.message,
-      requestId: req.id,
-    });
-
-    return res.status(statusCode).json({
-      success: false,
-      message: error.message,
-      requestId: req.id,
-      queueDepth: session.sendQueue.length,
-    });
-  }
-});
+  },
+);
 
 app.post("/api/test-chat", requireAdminSession, async (req, res) => {
   const clientIp = getClientIp(req);
@@ -9552,12 +12435,15 @@ app.post("/api/test-chat", requireAdminSession, async (req, res) => {
   });
 
   try {
-    const { result, queueDelayMs, sendDurationMs } = await enqueueMessageSend(session, {
-      jid: ownJid,
-      content: {
-        text: `Test Chat berhasil ✅\nWaktu: ${new Date().toLocaleString("id-ID")}`,
+    const { result, queueDelayMs, sendDurationMs } = await enqueueMessageSend(
+      session,
+      {
+        jid: ownJid,
+        content: {
+          text: `Test Chat berhasil ✅\nWaktu: ${new Date().toLocaleString("id-ID")}`,
+        },
       },
-    });
+    );
 
     return res.json({
       success: true,
@@ -9731,6 +12617,9 @@ app.delete("/api/sessions/:id", requireAdminSession, async (req, res) => {
       clientIp,
       session: req.params.id,
     });
+    await logAdminActivity(req, "session_deleted", {
+      sessionId: req.params.id,
+    });
 
     return res.json({
       success: true,
@@ -9757,13 +12646,16 @@ app.delete("/api/sessions/:id", requireAdminSession, async (req, res) => {
 // ---------------------------------------------------------------------------
 
 app.post("/api/auth/admin/login", async (req, res) => {
-  const { username, password } = req.body || {};
+  const { websiteUrl, apiKey } = req.body || {};
   const clientIp = getClientIp(req);
-  const attemptKey = loginAttemptKey("admin", username, clientIp);
+  const attemptKey = loginAttemptKey("admin", websiteUrl, clientIp);
 
   const lockoutSeconds = getLoginLockoutSeconds(attemptKey);
   if (lockoutSeconds > 0) {
-    logger.warn(`[${req.id}] Login admin ditolak: terlalu banyak percobaan gagal`, { clientIp, username });
+    logger.warn(
+      `[${req.id}] Login admin ditolak: terlalu banyak percobaan gagal`,
+      { clientIp, websiteUrl },
+    );
     return res.status(429).json({
       success: false,
       message: `Terlalu banyak percobaan login gagal. Coba lagi dalam ${Math.ceil(lockoutSeconds / 60)} menit.`,
@@ -9771,32 +12663,291 @@ app.post("/api/auth/admin/login", async (req, res) => {
     });
   }
 
-  const row = await dbGet("SELECT * FROM admins WHERE username = ?", [String(username || "").trim()]);
+  const normalizedWebsiteUrl = normalizeWebsiteUrl(websiteUrl);
+  const validWebsiteUrl =
+    Boolean(ADMIN_WEBSITE_URL) &&
+    normalizedWebsiteUrl === normalizeWebsiteUrl(ADMIN_WEBSITE_URL);
+  const providedApiKey = String(apiKey || "");
+  const validApiKey =
+    Boolean(API_KEY) &&
+    providedApiKey.length === API_KEY.length &&
+    crypto.timingSafeEqual(Buffer.from(providedApiKey), Buffer.from(API_KEY));
 
-  if (!row || !verifyPassword(String(password || ""), row.passwordSalt, row.passwordHash)) {
+  if (!validWebsiteUrl || !validApiKey) {
     recordFailedLogin(attemptKey);
-    logger.warn(`[${req.id}] Login admin gagal`, { clientIp, username });
-    return res.status(401).json({ success: false, message: "Username atau password salah", requestId: req.id });
+    logger.warn(`[${req.id}] Login admin gagal`, {
+      clientIp,
+      websiteUrl: normalizedWebsiteUrl,
+    });
+    return res.status(401).json({
+      success: false,
+      message: "URL website WhatsApp atau API key tidak valid",
+      requestId: req.id,
+    });
   }
 
   clearLoginAttempts(attemptKey);
-
-  const token = await createWebSession("admin", row.id);
+  const admin = await dbGet(
+    "SELECT id, username FROM admins ORDER BY created_at ASC LIMIT 1",
+  );
+  const token = await createWebSession("admin", admin?.id || "admin");
   setSessionCookie(req, res, "wa_admin_sid", token, SESSION_TTL_MS / 1000);
 
-  logger.info(`[${req.id}] Admin login`, { username: row.username });
+  logger.info(`[${req.id}] Admin login`, { websiteUrl: normalizedWebsiteUrl });
+  await logAdminActivity(
+    req,
+    "admin_login",
+    { websiteUrl: normalizedWebsiteUrl },
+    admin,
+  );
 
-  return res.json({ success: true, message: "Login berhasil", requestId: req.id });
+  return res.json({
+    success: true,
+    message: "Login berhasil",
+    requestId: req.id,
+  });
+});
+
+app.post("/api/auth/admin/login/verify-2fa", async (req, res) => {
+  const { pendingToken, otp } = req.body || {};
+  const clientIp = getClientIp(req);
+  const attemptKey = loginAttemptKey(
+    "admin_2fa_verify",
+    pendingToken,
+    clientIp,
+  );
+
+  const lockoutSeconds = getLoginLockoutSeconds(attemptKey);
+  if (lockoutSeconds > 0) {
+    return res.status(429).json({
+      success: false,
+      message: `Terlalu banyak percobaan gagal. Coba lagi dalam ${Math.ceil(lockoutSeconds / 60)} menit.`,
+      requestId: req.id,
+    });
+  }
+
+  try {
+    const { subjectId } = verifyTwoFactorLogin(
+      String(pendingToken || ""),
+      otp,
+      "admin",
+    );
+    clearLoginAttempts(attemptKey);
+
+    const admin = await findAdminById(subjectId);
+    if (!admin) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin tidak ditemukan",
+        requestId: req.id,
+      });
+    }
+
+    const token = await createWebSession("admin", admin.id);
+    setSessionCookie(req, res, "wa_admin_sid", token, SESSION_TTL_MS / 1000);
+
+    logger.info(`[${req.id}] Admin login (2FA selesai)`, {
+      username: admin.username,
+    });
+    await logAdminActivity(req, "admin_login", null, {
+      id: admin.id,
+      username: admin.username,
+    });
+
+    return res.json({
+      success: true,
+      message: "Login berhasil",
+      requestId: req.id,
+    });
+  } catch (error) {
+    recordFailedLogin(attemptKey);
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
+  }
 });
 
 app.post("/api/auth/admin/logout", async (req, res) => {
   const cookies = parseCookies(req);
   await deleteWebSession(cookies.wa_admin_sid);
   clearSessionCookie(req, res, "wa_admin_sid");
-  return res.json({ success: true, message: "Logout berhasil", requestId: req.id });
+  return res.json({
+    success: true,
+    message: "Logout berhasil",
+    requestId: req.id,
+  });
 });
 
+// Selalu balas sukses (generic) walau username tidak ditemukan atau admin
+// tersebut belum punya nomor WA terdaftar (lihat updateAdminPhone/panel
+// Kelola Admin) — supaya endpoint ini tidak bisa dipakai buat enumerasi.
+app.post("/api/auth/admin/forgot-password", async (req, res) => {
+  const { username } = req.body || {};
+  const clientIp = getClientIp(req);
+  const attemptKey = loginAttemptKey("admin_otp_request", username, clientIp);
+  const resendKey = otpResendKey("admin", username);
+  const resendCooldownSeconds = OTP_RESEND_COOLDOWN_MS / 1000;
+
+  const lockoutSeconds = getLoginLockoutSeconds(attemptKey);
+  if (lockoutSeconds > 0) {
+    logger.warn(
+      `[${req.id}] Permintaan OTP reset password admin ditolak: terlalu banyak percobaan`,
+      { clientIp, username },
+    );
+    return res.status(429).json({
+      success: false,
+      message: `Terlalu banyak permintaan kode OTP. Coba lagi dalam ${Math.ceil(lockoutSeconds / 60)} menit.`,
+      requestId: req.id,
+    });
+  }
+
+  const cooldownSeconds = getOtpResendCooldownSeconds(resendKey);
+  if (cooldownSeconds > 0) {
+    return res.status(429).json({
+      success: false,
+      message: `Tunggu ${cooldownSeconds} detik sebelum minta kode OTP lagi.`,
+      retryAfterSeconds: cooldownSeconds,
+      requestId: req.id,
+    });
+  }
+
+  recordFailedLogin(attemptKey);
+  markOtpResendSent(resendKey);
+
+  try {
+    const { found, hasPhone, delivered } = await requestPasswordReset(
+      "admin",
+      username,
+    );
+    logger.info(`[${req.id}] Permintaan OTP reset password admin`, {
+      username,
+      found,
+      hasPhone,
+      delivered,
+    });
+
+    if (!found) {
+      return res.status(404).json({
+        success: false,
+        message: "Username admin tidak ditemukan.",
+        retryAfterSeconds: resendCooldownSeconds,
+        requestId: req.id,
+      });
+    }
+
+    if (!hasPhone) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Admin ini belum punya nomor WA terdaftar. Minta admin lain mengisi nomor WA lewat panel Kelola Admin dulu.",
+        retryAfterSeconds: resendCooldownSeconds,
+        requestId: req.id,
+      });
+    }
+
+    if (!delivered) {
+      return res.status(502).json({
+        success: false,
+        message:
+          "Gagal mengirim kode OTP lewat WhatsApp (WAG notifier belum terhubung). Coba lagi sebentar lagi.",
+        retryAfterSeconds: resendCooldownSeconds,
+        requestId: req.id,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Kode OTP sudah dikirim ke WhatsApp nomor terdaftar admin ini.",
+      retryAfterSeconds: resendCooldownSeconds,
+      requestId: req.id,
+    });
+  } catch (error) {
+    logger.warn(
+      `[${req.id}] Gagal memproses permintaan OTP reset password admin`,
+      { username, error: error.message },
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Gagal memproses permintaan OTP. Coba lagi sebentar lagi.",
+      retryAfterSeconds: resendCooldownSeconds,
+      requestId: req.id,
+    });
+  }
+});
+
+app.post("/api/auth/admin/reset-password", async (req, res) => {
+  const { username, otp, newPassword } = req.body || {};
+  const clientIp = getClientIp(req);
+  const attemptKey = loginAttemptKey("admin_otp_verify", username, clientIp);
+
+  const lockoutSeconds = getLoginLockoutSeconds(attemptKey);
+  if (lockoutSeconds > 0) {
+    logger.warn(
+      `[${req.id}] Verifikasi OTP reset password admin ditolak: terlalu banyak percobaan`,
+      { clientIp, username },
+    );
+    return res.status(429).json({
+      success: false,
+      message: `Terlalu banyak percobaan gagal. Coba lagi dalam ${Math.ceil(lockoutSeconds / 60)} menit.`,
+      requestId: req.id,
+    });
+  }
+
+  try {
+    await verifyOtpAndResetPassword("admin", username, otp, newPassword);
+    clearLoginAttempts(attemptKey);
+    logger.info(`[${req.id}] Password admin direset via OTP`, { username });
+    const resetAdmin = await findAdminByUsername(username);
+    await logAdminActivity(
+      req,
+      "admin_password_reset_via_otp",
+      { username },
+      resetAdmin ? { id: resetAdmin.id, username: resetAdmin.username } : null,
+    );
+    return res.json({
+      success: true,
+      message: "Password berhasil direset. Silakan login dengan password baru.",
+      requestId: req.id,
+    });
+  } catch (error) {
+    recordFailedLogin(attemptKey);
+    logger.warn(`[${req.id}] Verifikasi OTP reset password admin gagal`, {
+      username,
+      error: error.message,
+    });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
+  }
+});
+
+function rejectLegacyUserFeature(req, res) {
+  return res.status(410).json({
+    success: false,
+    message: "Fitur user sudah dihapus. Gunakan login admin.",
+    requestId: req.id,
+  });
+}
+
+app.use(
+  [
+    "/api/auth/register",
+    "/api/auth/login",
+    "/api/auth/login/verify-2fa",
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+    "/api/auth/logout",
+    "/api/my",
+    "/api/external",
+    "/api/admin/users",
+    "/api/admin/requests",
+  ],
+  rejectLegacyUserFeature,
+);
+
 app.post("/api/auth/register", async (req, res) => {
+  return rejectLegacyUserFeature(req, res);
+
   const { username, password, phone } = req.body || {};
 
   try {
@@ -9810,7 +12961,10 @@ app.post("/api/auth/register", async (req, res) => {
       `Halo ${user.username}, akun kamu berhasil dibuat!\n\nAPI Key kamu:\n${apiKey}\n\nDipakai untuk kirim pesan lewat API dari sistem/aplikasi kamu sendiri (lihat tab Dokumentasi API di ${PUBLIC_BASE_URL || ""}/app). Kunci ini cuma dikirim sekali lewat WhatsApp ke nomor ini — kalau hilang, hubungi admin lewat tombol chat WA di tab Dokumentasi API untuk minta dibuatkan ulang.\n\n⚠️ JANGAN bagikan API key ini ke siapa pun. Siapa saja yang punya key ini bisa kirim pesan atas nama akun kamu.`,
     );
 
-    logger.info(`[${req.id}] User baru mendaftar`, { username: user.username, apiKeyDelivered: delivered });
+    logger.info(`[${req.id}] User baru mendaftar`, {
+      username: user.username,
+      apiKeyDelivered: delivered,
+    });
 
     return res.json({
       success: true,
@@ -9822,18 +12976,25 @@ app.post("/api/auth/register", async (req, res) => {
       requestId: req.id,
     });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 });
 
 app.post("/api/auth/login", async (req, res) => {
+  return rejectLegacyUserFeature(req, res);
+
   const { username, password } = req.body || {};
   const clientIp = getClientIp(req);
   const attemptKey = loginAttemptKey("user", username, clientIp);
 
   const lockoutSeconds = getLoginLockoutSeconds(attemptKey);
   if (lockoutSeconds > 0) {
-    logger.warn(`[${req.id}] Login user ditolak: terlalu banyak percobaan gagal`, { clientIp, username });
+    logger.warn(
+      `[${req.id}] Login user ditolak: terlalu banyak percobaan gagal`,
+      { clientIp, username },
+    );
     return res.status(429).json({
       success: false,
       message: `Terlalu banyak percobaan login gagal. Coba lagi dalam ${Math.ceil(lockoutSeconds / 60)} menit.`,
@@ -9843,27 +13004,249 @@ app.post("/api/auth/login", async (req, res) => {
 
   const row = await findUserByUsername(username);
 
-  if (!row || !verifyPassword(String(password || ""), row.passwordSalt, row.passwordHash)) {
+  if (
+    !row ||
+    !verifyPassword(String(password || ""), row.passwordSalt, row.passwordHash)
+  ) {
     recordFailedLogin(attemptKey);
     logger.warn(`[${req.id}] Login user gagal`, { clientIp, username });
-    return res.status(401).json({ success: false, message: "Username atau password salah", requestId: req.id });
+    return res.status(401).json({
+      success: false,
+      message: "Username atau password salah",
+      requestId: req.id,
+    });
   }
 
   clearLoginAttempts(attemptKey);
+
+  if (await isTwoFactorEnabled()) {
+    // User selalu punya nomor HP (wajib diisi saat daftar — lihat createUser),
+    // jadi startTwoFactorLogin tidak akan pernah null di sini.
+    const pending = await startTwoFactorLogin("user", {
+      id: row.id,
+      username: row.username,
+      phone: row.phone,
+    });
+    if (!pending.delivered) {
+      return res.status(502).json({
+        success: false,
+        message:
+          "Gagal mengirim kode verifikasi lewat WhatsApp (WAG notifier belum terhubung). Coba lagi sebentar lagi.",
+        requestId: req.id,
+      });
+    }
+
+    logger.info(
+      `[${req.id}] Login user tahap 1 sukses, menunggu verifikasi 2FA`,
+      { username: row.username },
+    );
+    return res.json({
+      success: true,
+      requiresTwoFactor: true,
+      pendingToken: pending.pendingToken,
+      message:
+        "Kode verifikasi sudah dikirim ke WhatsApp nomor terdaftar akun ini.",
+      requestId: req.id,
+    });
+  }
 
   const token = await createWebSession("user", row.id);
   setSessionCookie(req, res, "wa_user_sid", token, SESSION_TTL_MS / 1000);
 
   logger.info(`[${req.id}] User login`, { username: row.username });
 
-  return res.json({ success: true, message: "Login berhasil", user: rowToUser(row), requestId: req.id });
+  return res.json({
+    success: true,
+    message: "Login berhasil",
+    user: rowToUser(row),
+    requestId: req.id,
+  });
+});
+
+app.post("/api/auth/login/verify-2fa", async (req, res) => {
+  const { pendingToken, otp } = req.body || {};
+  const clientIp = getClientIp(req);
+  const attemptKey = loginAttemptKey("user_2fa_verify", pendingToken, clientIp);
+
+  const lockoutSeconds = getLoginLockoutSeconds(attemptKey);
+  if (lockoutSeconds > 0) {
+    return res.status(429).json({
+      success: false,
+      message: `Terlalu banyak percobaan gagal. Coba lagi dalam ${Math.ceil(lockoutSeconds / 60)} menit.`,
+      requestId: req.id,
+    });
+  }
+
+  try {
+    const { subjectId } = verifyTwoFactorLogin(
+      String(pendingToken || ""),
+      otp,
+      "user",
+    );
+    clearLoginAttempts(attemptKey);
+
+    const userRow = await findUserById(subjectId);
+    if (!userRow) {
+      return res.status(400).json({
+        success: false,
+        message: "Pengguna tidak ditemukan",
+        requestId: req.id,
+      });
+    }
+
+    const token = await createWebSession("user", userRow.id);
+    setSessionCookie(req, res, "wa_user_sid", token, SESSION_TTL_MS / 1000);
+
+    logger.info(`[${req.id}] User login (2FA selesai)`, {
+      username: userRow.username,
+    });
+
+    return res.json({
+      success: true,
+      message: "Login berhasil",
+      user: rowToUser(userRow),
+      requestId: req.id,
+    });
+  } catch (error) {
+    recordFailedLogin(attemptKey);
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
+  }
 });
 
 app.post("/api/auth/logout", async (req, res) => {
   const cookies = parseCookies(req);
   await deleteWebSession(cookies.wa_user_sid);
   clearSessionCookie(req, res, "wa_user_sid");
-  return res.json({ success: true, message: "Logout berhasil", requestId: req.id });
+  return res.json({
+    success: true,
+    message: "Logout berhasil",
+    requestId: req.id,
+  });
+});
+
+// Selalu balas sukses (generic) walau username tidak ditemukan — supaya
+// endpoint ini tidak bisa dipakai buat enumerasi username terdaftar.
+app.post("/api/auth/forgot-password", async (req, res) => {
+  const { username } = req.body || {};
+  const clientIp = getClientIp(req);
+  const attemptKey = loginAttemptKey("otp_request", username, clientIp);
+  const resendKey = otpResendKey("user", username);
+  const resendCooldownSeconds = OTP_RESEND_COOLDOWN_MS / 1000;
+
+  const lockoutSeconds = getLoginLockoutSeconds(attemptKey);
+  if (lockoutSeconds > 0) {
+    logger.warn(
+      `[${req.id}] Permintaan OTP reset password ditolak: terlalu banyak percobaan`,
+      { clientIp, username },
+    );
+    return res.status(429).json({
+      success: false,
+      message: `Terlalu banyak permintaan kode OTP. Coba lagi dalam ${Math.ceil(lockoutSeconds / 60)} menit.`,
+      requestId: req.id,
+    });
+  }
+
+  // Jeda per-username (bukan per-IP) supaya tombol kirim/kirim-ulang tidak
+  // bisa dipakai spam kirim WA ke nomor yang sama.
+  const cooldownSeconds = getOtpResendCooldownSeconds(resendKey);
+  if (cooldownSeconds > 0) {
+    return res.status(429).json({
+      success: false,
+      message: `Tunggu ${cooldownSeconds} detik sebelum minta kode OTP lagi.`,
+      retryAfterSeconds: cooldownSeconds,
+      requestId: req.id,
+    });
+  }
+
+  recordFailedLogin(attemptKey);
+  markOtpResendSent(resendKey);
+
+  try {
+    const { found, delivered } = await requestPasswordReset("user", username);
+    logger.info(`[${req.id}] Permintaan OTP reset password`, {
+      username,
+      found,
+      delivered,
+    });
+
+    if (!found) {
+      return res.status(404).json({
+        success: false,
+        message: "Username tidak ditemukan.",
+        retryAfterSeconds: resendCooldownSeconds,
+        requestId: req.id,
+      });
+    }
+
+    if (!delivered) {
+      return res.status(502).json({
+        success: false,
+        message:
+          "Gagal mengirim kode OTP lewat WhatsApp (WAG notifier belum terhubung). Coba lagi sebentar lagi.",
+        retryAfterSeconds: resendCooldownSeconds,
+        requestId: req.id,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Kode OTP sudah dikirim ke WhatsApp nomor terdaftar akun ini.",
+      retryAfterSeconds: resendCooldownSeconds,
+      requestId: req.id,
+    });
+  } catch (error) {
+    logger.warn(`[${req.id}] Gagal memproses permintaan OTP reset password`, {
+      username,
+      error: error.message,
+    });
+    return res.status(500).json({
+      success: false,
+      message: "Gagal memproses permintaan OTP. Coba lagi sebentar lagi.",
+      retryAfterSeconds: resendCooldownSeconds,
+      requestId: req.id,
+    });
+  }
+});
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  const { username, otp, newPassword } = req.body || {};
+  const clientIp = getClientIp(req);
+  const attemptKey = loginAttemptKey("otp_verify", username, clientIp);
+
+  const lockoutSeconds = getLoginLockoutSeconds(attemptKey);
+  if (lockoutSeconds > 0) {
+    logger.warn(
+      `[${req.id}] Verifikasi OTP reset password ditolak: terlalu banyak percobaan`,
+      { clientIp, username },
+    );
+    return res.status(429).json({
+      success: false,
+      message: `Terlalu banyak percobaan gagal. Coba lagi dalam ${Math.ceil(lockoutSeconds / 60)} menit.`,
+      requestId: req.id,
+    });
+  }
+
+  try {
+    await verifyOtpAndResetPassword("user", username, otp, newPassword);
+    clearLoginAttempts(attemptKey);
+    logger.info(`[${req.id}] Password direset via OTP`, { username });
+    return res.json({
+      success: true,
+      message: "Password berhasil direset. Silakan login dengan password baru.",
+      requestId: req.id,
+    });
+  } catch (error) {
+    recordFailedLogin(attemptKey);
+    logger.warn(`[${req.id}] Verifikasi OTP reset password gagal`, {
+      username,
+      error: error.message,
+    });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -9910,12 +13293,20 @@ app.get("/api/my/sessions", requireUserSession, async (req, res) => {
 app.get("/api/my/sessions/:id/qr", requireUserSession, async (req, res) => {
   const row = await getSessionRow(req.params.id);
   if (!row || row.ownerType !== "user" || row.ownerUserId !== req.user.id) {
-    return res.status(404).json({ success: false, message: "Akun WAG tidak ditemukan", requestId: req.id });
+    return res.status(404).json({
+      success: false,
+      message: "Akun WAG tidak ditemukan",
+      requestId: req.id,
+    });
   }
 
   const runtime = sessions.get(row.id);
   if (!runtime || !runtime.qrCodeData) {
-    return res.status(404).json({ success: false, message: "QR code belum tersedia", requestId: req.id });
+    return res.status(404).json({
+      success: false,
+      message: "QR code belum tersedia",
+      requestId: req.id,
+    });
   }
 
   return res.json({
@@ -9928,7 +13319,10 @@ app.get("/api/my/sessions/:id/qr", requireUserSession, async (req, res) => {
 
 app.post("/api/my/sessions", requireUserSession, async (req, res) => {
   if (req.user.planExpired) {
-    const expiredDate = new Date(req.user.planExpiresAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+    const expiredDate = new Date(req.user.planExpiresAt).toLocaleDateString(
+      "id-ID",
+      { day: "numeric", month: "long", year: "numeric" },
+    );
     return res.status(402).json({
       success: false,
       message: `Paket ${req.user.planLabel} kamu sudah kadaluarsa sejak ${expiredDate}. Perpanjang dulu lewat admin sebelum bisa tambah akun WAG baru.`,
@@ -9949,7 +13343,10 @@ app.post("/api/my/sessions", requireUserSession, async (req, res) => {
   const name = String((req.body && req.body.name) || "").trim();
   const row = await createPendingWagRequest(req.user, name);
 
-  logger.info(`[${req.id}] Permintaan akun WAG baru`, { user: req.user.username, name: row.name });
+  logger.info(`[${req.id}] Permintaan akun WAG baru`, {
+    user: req.user.username,
+    name: row.name,
+  });
 
   sendAdminNotification(
     `Permintaan akun WAG baru dari ${req.user.username} (${req.user.phone}). Buka dashboard untuk approve.`,
@@ -9966,10 +13363,19 @@ app.post("/api/my/sessions", requireUserSession, async (req, res) => {
 app.delete("/api/my/sessions/:id", requireUserSession, async (req, res) => {
   try {
     await removeUserOwnedSession(req.params.id, req.user.id);
-    logger.info(`[${req.id}] User menghapus akun WAG miliknya`, { user: req.user.username, id: req.params.id });
-    return res.json({ success: true, message: "Akun WAG dihapus", requestId: req.id });
+    logger.info(`[${req.id}] User menghapus akun WAG miliknya`, {
+      user: req.user.username,
+      id: req.params.id,
+    });
+    return res.json({
+      success: true,
+      message: "Akun WAG dihapus",
+      requestId: req.id,
+    });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 });
 
@@ -9977,17 +13383,33 @@ app.post("/api/my/send", requireUserSession, async (req, res) => {
   const { sessionId, number, message } = req.body || {};
 
   const row = await getSessionRow(sessionId);
-  if (!row || row.ownerType !== "user" || row.ownerUserId !== req.user.id || row.status !== "active") {
-    return res.status(404).json({ success: false, message: "Akun WAG tidak ditemukan", requestId: req.id });
+  if (
+    !row ||
+    row.ownerType !== "user" ||
+    row.ownerUserId !== req.user.id ||
+    row.status !== "active"
+  ) {
+    return res.status(404).json({
+      success: false,
+      message: "Akun WAG tidak ditemukan",
+      requestId: req.id,
+    });
   }
 
   const session = sessions.get(sessionId);
   if (!session) {
-    return res.status(404).json({ success: false, message: "Akun WAG tidak ditemukan", requestId: req.id });
+    return res.status(404).json({
+      success: false,
+      message: "Akun WAG tidak ditemukan",
+      requestId: req.id,
+    });
   }
 
   if (req.user.planExpired) {
-    const expiredDate = new Date(req.user.planExpiresAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+    const expiredDate = new Date(req.user.planExpiresAt).toLocaleDateString(
+      "id-ID",
+      { day: "numeric", month: "long", year: "numeric" },
+    );
     return res.status(402).json({
       success: false,
       message: `Paket ${req.user.planLabel} kamu sudah kadaluarsa sejak ${expiredDate}. Perpanjang dulu lewat admin sebelum bisa kirim pesan lagi.`,
@@ -10012,13 +13434,18 @@ app.post("/api/my/send", requireUserSession, async (req, res) => {
     jid = normalizeRecipient(number);
     text = normalizeMessage(message);
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 
   const maskedJid = maskDestination(jid);
 
   try {
-    const { result } = await enqueueMessageSend(session, { jid, content: { text } });
+    const { result } = await enqueueMessageSend(session, {
+      jid,
+      content: { text },
+    });
 
     await recordHistory({
       source: "user_portal",
@@ -10030,7 +13457,10 @@ app.post("/api/my/send", requireUserSession, async (req, res) => {
       messageId: result?.key?.id,
     });
 
-    logger.info(`[${req.id}] User kirim pesan lewat portal`, { user: req.user.username, to: maskedJid });
+    logger.info(`[${req.id}] User kirim pesan lewat portal`, {
+      user: req.user.username,
+      to: maskedJid,
+    });
 
     return res.json({
       success: true,
@@ -10050,7 +13480,9 @@ app.post("/api/my/send", requireUserSession, async (req, res) => {
     });
 
     const statusCode = error.code === "NOT_CONNECTED" ? 503 : 500;
-    return res.status(statusCode).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(statusCode)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 });
 
@@ -10069,8 +13501,17 @@ async function resolveExternalSendContext(req, res) {
   let row;
   if (sessionId) {
     row = await getSessionRow(sessionId);
-    if (!row || row.ownerType !== "user" || row.ownerUserId !== req.user.id || row.status !== "active") {
-      res.status(404).json({ success: false, message: "Akun WAG tidak ditemukan", requestId: req.id });
+    if (
+      !row ||
+      row.ownerType !== "user" ||
+      row.ownerUserId !== req.user.id ||
+      row.status !== "active"
+    ) {
+      res.status(404).json({
+        success: false,
+        message: "Akun WAG tidak ditemukan",
+        requestId: req.id,
+      });
       return null;
     }
   } else {
@@ -10079,7 +13520,8 @@ async function resolveExternalSendContext(req, res) {
     if (!row) {
       res.status(404).json({
         success: false,
-        message: "Belum ada akun WAG aktif. Isi parameter 'session' atau approve dulu akun WAG-mu.",
+        message:
+          "Belum ada akun WAG aktif. Isi parameter 'session' atau approve dulu akun WAG-mu.",
         requestId: req.id,
       });
       return null;
@@ -10088,12 +13530,19 @@ async function resolveExternalSendContext(req, res) {
 
   const session = sessions.get(row.id);
   if (!session) {
-    res.status(404).json({ success: false, message: "Akun WAG tidak ditemukan", requestId: req.id });
+    res.status(404).json({
+      success: false,
+      message: "Akun WAG tidak ditemukan",
+      requestId: req.id,
+    });
     return null;
   }
 
   if (req.user.planExpired) {
-    const expiredDate = new Date(req.user.planExpiresAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+    const expiredDate = new Date(req.user.planExpiresAt).toLocaleDateString(
+      "id-ID",
+      { day: "numeric", month: "long", year: "numeric" },
+    );
     res.status(402).json({
       success: false,
       message: `Paket ${req.user.planLabel} kamu sudah kadaluarsa sejak ${expiredDate}. Perpanjang dulu lewat admin sebelum bisa kirim pesan lagi.`,
@@ -10132,13 +13581,18 @@ app.post("/api/external/send", requireUserApiKey, async (req, res) => {
     jid = normalizeRecipient(number);
     text = normalizeMessage(message);
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 
   const maskedJid = maskDestination(jid);
 
   try {
-    const { result } = await enqueueMessageSend(session, { jid, content: { text } });
+    const { result } = await enqueueMessageSend(session, {
+      jid,
+      content: { text },
+    });
 
     await recordHistory({
       source: "external_api",
@@ -10150,7 +13604,10 @@ app.post("/api/external/send", requireUserApiKey, async (req, res) => {
       messageId: result?.key?.id,
     });
 
-    logger.info(`[${req.id}] User kirim pesan lewat API eksternal`, { user: req.user.username, to: maskedJid });
+    logger.info(`[${req.id}] User kirim pesan lewat API eksternal`, {
+      user: req.user.username,
+      to: maskedJid,
+    });
 
     return res.json({
       success: true,
@@ -10171,7 +13628,9 @@ app.post("/api/external/send", requireUserApiKey, async (req, res) => {
     });
 
     const statusCode = error.code === "NOT_CONNECTED" ? 503 : 500;
-    return res.status(statusCode).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(statusCode)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 });
 
@@ -10188,7 +13647,9 @@ app.post(
           err.code === "LIMIT_FILE_SIZE"
             ? `Ukuran file melebihi batas ${Math.round(MAX_FILE_SIZE_BYTES / 1024 / 1024)}MB`
             : err.message;
-        return res.status(400).json({ success: false, message, requestId: req.id });
+        return res
+          .status(400)
+          .json({ success: false, message, requestId: req.id });
       }
       return next();
     });
@@ -10214,7 +13675,9 @@ app.post(
       jid = normalizeRecipient(req.body.number);
       caption = normalizeOptionalCaption(req.body.caption);
     } catch (error) {
-      return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+      return res
+        .status(400)
+        .json({ success: false, message: error.message, requestId: req.id });
     }
 
     const maskedJid = maskDestination(jid);
@@ -10260,7 +13723,9 @@ app.post(
       });
 
       const statusCode = error.code === "NOT_CONNECTED" ? 503 : 500;
-      return res.status(statusCode).json({ success: false, message: error.message, requestId: req.id });
+      return res
+        .status(statusCode)
+        .json({ success: false, message: error.message, requestId: req.id });
     }
   },
 );
@@ -10298,18 +13763,25 @@ async function buildBroadcastTargets(userId, rawNumbers, contactGroup) {
     .forEach((value) => pushTarget(value, ""));
 
   if (contactGroup) {
-    const rows = await dbAll("SELECT name, phone FROM contacts WHERE user_id = ? AND group_name = ?", [
-      userId,
-      contactGroup,
-    ]);
+    const rows = await dbAll(
+      "SELECT name, phone FROM contacts WHERE user_id = ? AND group_name = ?",
+      [userId, contactGroup],
+    );
     rows.forEach((row) => pushTarget(row.phone, row.name));
   }
 
   if (!targets.length) {
-    return { targets: null, error: "Tidak ada nomor tujuan yang valid. Isi nomor manual atau pilih grup kontak." };
+    return {
+      targets: null,
+      error:
+        "Tidak ada nomor tujuan yang valid. Isi nomor manual atau pilih grup kontak.",
+    };
   }
   if (targets.length > MAX_BROADCAST_TARGETS) {
-    return { targets: null, error: `Maksimum ${MAX_BROADCAST_TARGETS} nomor per broadcast` };
+    return {
+      targets: null,
+      error: `Maksimum ${MAX_BROADCAST_TARGETS} nomor per broadcast`,
+    };
   }
 
   return { targets, error: null };
@@ -10329,12 +13801,20 @@ async function handleUserBroadcast(req, res, source) {
   try {
     text = normalizeMessage(message);
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 
-  const { targets, error: targetError } = await buildBroadcastTargets(req.user.id, numbers, contactGroup);
+  const { targets, error: targetError } = await buildBroadcastTargets(
+    req.user.id,
+    numbers,
+    contactGroup,
+  );
   if (targetError) {
-    return res.status(400).json({ success: false, message: targetError, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: targetError, requestId: req.id });
   }
 
   // Broadcast memakan kuota sebanyak jumlah tujuannya — dicek di depan supaya
@@ -10400,8 +13880,12 @@ async function handleUserBroadcast(req, res, source) {
   });
 }
 
-app.post("/api/my/broadcast", requireUserSession, (req, res) => handleUserBroadcast(req, res, "user_broadcast"));
-app.post("/api/external/broadcast", requireUserApiKey, (req, res) => handleUserBroadcast(req, res, "external_broadcast"));
+app.post("/api/my/broadcast", requireUserSession, (req, res) =>
+  handleUserBroadcast(req, res, "user_broadcast"),
+);
+app.post("/api/external/broadcast", requireUserApiKey, (req, res) =>
+  handleUserBroadcast(req, res, "external_broadcast"),
+);
 
 // Inti penjadwalan pesan milik user.
 async function handleUserSchedule(req, res) {
@@ -10431,7 +13915,9 @@ async function handleUserSchedule(req, res) {
       throw new Error("Waktu pengiriman harus di masa depan");
     }
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 
   const id = uuidv4();
@@ -10465,8 +13951,12 @@ async function handleUserSchedule(req, res) {
   });
 }
 
-app.post("/api/my/schedule", requireUserSession, (req, res) => handleUserSchedule(req, res));
-app.post("/api/external/schedule", requireUserApiKey, (req, res) => handleUserSchedule(req, res));
+app.post("/api/my/schedule", requireUserSession, (req, res) =>
+  handleUserSchedule(req, res),
+);
+app.post("/api/external/schedule", requireUserApiKey, (req, res) =>
+  handleUserSchedule(req, res),
+);
 
 app.get("/api/my/schedule", requireUserSession, async (req, res) => {
   const rows = await dbAll(
@@ -10496,12 +13986,16 @@ app.get("/api/my/schedule", requireUserSession, async (req, res) => {
 });
 
 app.delete("/api/my/schedule/:id", requireUserSession, async (req, res) => {
-  const row = await dbGet("SELECT * FROM scheduled_messages WHERE id = ? AND owner_user_id = ?", [
-    req.params.id,
-    req.user.id,
-  ]);
+  const row = await dbGet(
+    "SELECT * FROM scheduled_messages WHERE id = ? AND owner_user_id = ?",
+    [req.params.id, req.user.id],
+  );
   if (!row) {
-    return res.status(404).json({ success: false, message: "Pesan terjadwal tidak ditemukan", requestId: req.id });
+    return res.status(404).json({
+      success: false,
+      message: "Pesan terjadwal tidak ditemukan",
+      requestId: req.id,
+    });
   }
   if (row.status !== "pending") {
     return res.status(409).json({
@@ -10511,12 +14005,16 @@ app.delete("/api/my/schedule/:id", requireUserSession, async (req, res) => {
     });
   }
 
-  await dbRun("UPDATE scheduled_messages SET status = 'cancelled', cancelled_at = ? WHERE id = ?", [
-    new Date().toISOString(),
-    req.params.id,
-  ]);
+  await dbRun(
+    "UPDATE scheduled_messages SET status = 'cancelled', cancelled_at = ? WHERE id = ?",
+    [new Date().toISOString(), req.params.id],
+  );
 
-  return res.json({ success: true, message: "Pesan terjadwal dibatalkan", requestId: req.id });
+  return res.json({
+    success: true,
+    message: "Pesan terjadwal dibatalkan",
+    requestId: req.id,
+  });
 });
 
 app.get("/api/my/plans", requireUserSession, async (req, res) => {
@@ -10554,7 +14052,11 @@ app.post("/api/my/webhook", requireUserSession, async (req, res) => {
     try {
       parsed = new URL(rawUrl);
     } catch {
-      return res.status(400).json({ success: false, message: "URL webhook tidak valid", requestId: req.id });
+      return res.status(400).json({
+        success: false,
+        message: "URL webhook tidak valid",
+        requestId: req.id,
+      });
     }
 
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
@@ -10566,13 +14068,15 @@ app.post("/api/my/webhook", requireUserSession, async (req, res) => {
     }
   }
 
-  await dbRun("UPDATE users SET webhook_url = ?, webhook_secret = ? WHERE id = ?", [
-    rawUrl || null,
-    rawSecret || null,
-    req.user.id,
-  ]);
+  await dbRun(
+    "UPDATE users SET webhook_url = ?, webhook_secret = ? WHERE id = ?",
+    [rawUrl || null, rawSecret || null, req.user.id],
+  );
 
-  logger.info(`[${req.id}] Webhook user diperbarui`, { user: req.user.username, enabled: Boolean(rawUrl) });
+  logger.info(`[${req.id}] Webhook user diperbarui`, {
+    user: req.user.username,
+    enabled: Boolean(rawUrl),
+  });
 
   return res.json({
     success: true,
@@ -10594,7 +14098,12 @@ app.get("/api/my/history", requireUserSession, async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
 
   if (!sessionIds.length) {
-    return res.json({ success: true, entries: [], total: 0, requestId: req.id });
+    return res.json({
+      success: true,
+      entries: [],
+      total: 0,
+      requestId: req.id,
+    });
   }
 
   const placeholders = sessionIds.map(() => "?").join(",");
@@ -10631,7 +14140,13 @@ app.get("/api/my/analytics", requireUserSession, async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
 
   if (!sessionIds.length) {
-    return res.json({ success: true, days, daily: [], totals: { sent: 0, failed: 0, incoming: 0 }, requestId: req.id });
+    return res.json({
+      success: true,
+      days,
+      daily: [],
+      totals: { sent: 0, failed: 0, incoming: 0 },
+      requestId: req.id,
+    });
   }
 
   const placeholders = sessionIds.map(() => "?").join(",");
@@ -10690,7 +14205,11 @@ app.get("/api/my/analytics", requireUserSession, async (req, res) => {
 
   const daily = [...dayMap.values()];
   const totals = daily.reduce(
-    (acc, d) => ({ sent: acc.sent + d.sent, failed: acc.failed + d.failed, incoming: acc.incoming + d.incoming }),
+    (acc, d) => ({
+      sent: acc.sent + d.sent,
+      failed: acc.failed + d.failed,
+      incoming: acc.incoming + d.incoming,
+    }),
     { sent: 0, failed: 0, incoming: 0 },
   );
 
@@ -10710,7 +14229,16 @@ app.get("/api/my/history/export", requireUserSession, async (req, res) => {
   const sessionIds = sessionRows.map((row) => row.id);
   const sessionNameById = new Map(sessionRows.map((row) => [row.id, row.name]));
 
-  const header = ["Waktu", "Akun WAG", "Tujuan", "Tipe", "Pesan", "Sumber", "Status", "Error"];
+  const header = [
+    "Waktu",
+    "Akun WAG",
+    "Tujuan",
+    "Tipe",
+    "Pesan",
+    "Sumber",
+    "Status",
+    "Error",
+  ];
   let rows = [];
 
   if (sessionIds.length) {
@@ -10778,9 +14306,10 @@ app.get("/api/my/inbox", requireUserSession, async (req, res) => {
     "SELECT * FROM incoming_messages WHERE owner_user_id = ? ORDER BY seq DESC LIMIT ?",
     [req.user.id, limit],
   );
-  const totalRow = await dbGet("SELECT COUNT(*) AS c FROM incoming_messages WHERE owner_user_id = ?", [
-    req.user.id,
-  ]);
+  const totalRow = await dbGet(
+    "SELECT COUNT(*) AS c FROM incoming_messages WHERE owner_user_id = ?",
+    [req.user.id],
+  );
 
   const sessionRows = await listUserSessionRows(req.user.id);
   const sessionNameById = new Map(sessionRows.map((row) => [row.id, row.name]));
@@ -10808,71 +14337,113 @@ app.get("/api/my/inbox", requireUserSession, async (req, res) => {
 
 const AUTO_REPLY_MATCH_TYPES = ["contains", "exact", "starts"];
 
+function autoReplyRowToPublic(row) {
+  return {
+    id: row.id,
+    sessionId: row.sessionId,
+    keyword: row.keyword,
+    matchType: row.matchType,
+    replyText: row.replyText,
+    enabled: Boolean(row.enabled),
+    hasMedia: Boolean(row.mediaPath),
+    mediaFilename: row.mediaFilename || null,
+    createdAt: row.createdAt,
+  };
+}
+
 app.get("/api/my/auto-replies", requireUserSession, async (req, res) => {
-  const rows = await dbAll("SELECT * FROM auto_replies WHERE user_id = ? ORDER BY created_at ASC", [
-    req.user.id,
-  ]);
+  const rows = await dbAll(
+    "SELECT * FROM auto_replies WHERE user_id = ? ORDER BY created_at ASC",
+    [req.user.id],
+  );
 
   res.setHeader("Cache-Control", "no-store");
   return res.json({
     success: true,
-    entries: rows.map((row) => ({
-      id: row.id,
-      sessionId: row.sessionId,
-      keyword: row.keyword,
-      matchType: row.matchType,
-      replyText: row.replyText,
-      enabled: Boolean(row.enabled),
-      createdAt: row.createdAt,
-    })),
+    entries: rows.map(autoReplyRowToPublic),
     requestId: req.id,
   });
 });
 
-app.post("/api/my/auto-replies", requireUserSession, async (req, res) => {
-  const { keyword, replyText, matchType, sessionId } = req.body || {};
+app.post(
+  "/api/my/auto-replies",
+  requireUserSession,
+  uploadSingleFileMiddleware("file"),
+  async (req, res) => {
+    const { keyword, replyText, matchType, sessionId } = req.body || {};
 
-  const trimmedKeyword = String(keyword || "").trim();
-  const trimmedReply = String(replyText || "").trim();
+    const trimmedKeyword = String(keyword || "").trim();
+    const trimmedReply = String(replyText || "").trim();
 
-  if (!trimmedKeyword) {
-    return res.status(400).json({ success: false, message: "Kata kunci wajib diisi", requestId: req.id });
-  }
-  if (!trimmedReply) {
-    return res.status(400).json({ success: false, message: "Isi balasan wajib diisi", requestId: req.id });
-  }
-
-  const resolvedMatchType = AUTO_REPLY_MATCH_TYPES.includes(matchType) ? matchType : "contains";
-
-  // sessionId opsional; kalau diisi harus benar-benar milik user ini.
-  let resolvedSessionId = null;
-  if (sessionId) {
-    const row = await getSessionRow(sessionId);
-    if (!row || row.ownerType !== "user" || row.ownerUserId !== req.user.id) {
-      return res.status(404).json({ success: false, message: "Akun WAG tidak ditemukan", requestId: req.id });
+    if (!trimmedKeyword) {
+      return res.status(400).json({
+        success: false,
+        message: "Kata kunci wajib diisi",
+        requestId: req.id,
+      });
     }
-    resolvedSessionId = sessionId;
-  }
+    if (!trimmedReply) {
+      return res.status(400).json({
+        success: false,
+        message: "Isi balasan wajib diisi",
+        requestId: req.id,
+      });
+    }
 
-  const id = uuidv4();
-  await dbRun(
-    `INSERT INTO auto_replies (id, user_id, session_id, keyword, match_type, reply_text, enabled, created_at)
-     VALUES (@id, @userId, @sessionId, @keyword, @matchType, @replyText, 1, @createdAt)`,
-    {
-      id,
-      userId: req.user.id,
-      sessionId: resolvedSessionId,
+    const resolvedMatchType = AUTO_REPLY_MATCH_TYPES.includes(matchType)
+      ? matchType
+      : "contains";
+
+    // sessionId opsional; kalau diisi harus benar-benar milik user ini.
+    let resolvedSessionId = null;
+    if (sessionId) {
+      const row = await getSessionRow(sessionId);
+      if (!row || row.ownerType !== "user" || row.ownerUserId !== req.user.id) {
+        return res.status(404).json({
+          success: false,
+          message: "Akun WAG tidak ditemukan",
+          requestId: req.id,
+        });
+      }
+      resolvedSessionId = sessionId;
+    }
+
+    const id = uuidv4();
+    let mediaInfo = { path: null, mimetype: null, fileName: null };
+    if (req.file) {
+      mediaInfo = await saveAutoReplyMedia(id, req.file);
+    }
+
+    await dbRun(
+      `INSERT INTO auto_replies (id, user_id, session_id, keyword, match_type, reply_text, enabled, media_path, media_mimetype, media_filename, created_at)
+     VALUES (@id, @userId, @sessionId, @keyword, @matchType, @replyText, 1, @mediaPath, @mediaMimetype, @mediaFilename, @createdAt)`,
+      {
+        id,
+        userId: req.user.id,
+        sessionId: resolvedSessionId,
+        keyword: trimmedKeyword,
+        matchType: resolvedMatchType,
+        replyText: trimmedReply,
+        mediaPath: mediaInfo.path,
+        mediaMimetype: mediaInfo.mimetype,
+        mediaFilename: mediaInfo.fileName,
+        createdAt: new Date().toISOString(),
+      },
+    );
+
+    logger.info(`[${req.id}] Aturan balas otomatis dibuat`, {
+      user: req.user.username,
       keyword: trimmedKeyword,
-      matchType: resolvedMatchType,
-      replyText: trimmedReply,
-      createdAt: new Date().toISOString(),
-    },
-  );
+    });
 
-  logger.info(`[${req.id}] Aturan balas otomatis dibuat`, { user: req.user.username, keyword: trimmedKeyword });
-
-  return res.json({ success: true, message: "Aturan balas otomatis disimpan", id, requestId: req.id });
-});
+    return res.json({
+      success: true,
+      message: "Aturan balas otomatis disimpan",
+      id,
+      requestId: req.id,
+    });
+  },
+);
 
 // Dipakai bareng oleh PATCH user & admin — validasi field & bangun objek
 // UPDATE dari body request. sessionOwnerCheck memvalidasi sessionId sesuai
@@ -10886,12 +14457,19 @@ async function buildAutoReplyUpdate(req, res, existing, sessionOwnerCheck) {
     replyText: existing.replyText,
     sessionId: existing.sessionId,
     enabled: existing.enabled,
+    mediaPath: existing.mediaPath,
+    mediaMimetype: existing.mediaMimetype,
+    mediaFilename: existing.mediaFilename,
   };
 
   if (body.keyword !== undefined) {
     const trimmed = String(body.keyword).trim();
     if (!trimmed) {
-      res.status(400).json({ success: false, message: "Kata kunci wajib diisi", requestId: req.id });
+      res.status(400).json({
+        success: false,
+        message: "Kata kunci wajib diisi",
+        requestId: req.id,
+      });
       return null;
     }
     update.keyword = trimmed;
@@ -10900,21 +14478,31 @@ async function buildAutoReplyUpdate(req, res, existing, sessionOwnerCheck) {
   if (body.replyText !== undefined) {
     const trimmed = String(body.replyText).trim();
     if (!trimmed) {
-      res.status(400).json({ success: false, message: "Isi balasan wajib diisi", requestId: req.id });
+      res.status(400).json({
+        success: false,
+        message: "Isi balasan wajib diisi",
+        requestId: req.id,
+      });
       return null;
     }
     update.replyText = trimmed;
   }
 
   if (body.matchType !== undefined) {
-    update.matchType = AUTO_REPLY_MATCH_TYPES.includes(body.matchType) ? body.matchType : "contains";
+    update.matchType = AUTO_REPLY_MATCH_TYPES.includes(body.matchType)
+      ? body.matchType
+      : "contains";
   }
 
   if (body.sessionId !== undefined) {
     if (body.sessionId) {
       const ok = await sessionOwnerCheck(body.sessionId);
       if (!ok) {
-        res.status(404).json({ success: false, message: "Akun WAG tidak ditemukan", requestId: req.id });
+        res.status(404).json({
+          success: false,
+          message: "Akun WAG tidak ditemukan",
+          requestId: req.id,
+        });
         return null;
       }
       update.sessionId = body.sessionId;
@@ -10923,54 +14511,120 @@ async function buildAutoReplyUpdate(req, res, existing, sessionOwnerCheck) {
     }
   }
 
-  if (typeof body.enabled === "boolean") {
-    update.enabled = body.enabled ? 1 : 0;
+  const enabledValue = parseBooleanField(body.enabled);
+  if (enabledValue !== null) {
+    update.enabled = enabledValue ? 1 : 0;
+  }
+
+  // File baru menggantikan lampiran lama (kalau ada, dihapus dari disk).
+  // removeMedia="true" tanpa file baru = lepas lampiran, jadi rule teks saja.
+  if (req.file) {
+    await deleteAutoReplyMediaFile(update.mediaPath);
+    const saved = await saveAutoReplyMedia(existing.id, req.file);
+    update.mediaPath = saved.path;
+    update.mediaMimetype = saved.mimetype;
+    update.mediaFilename = saved.fileName;
+  } else if (parseBooleanField(body.removeMedia)) {
+    await deleteAutoReplyMediaFile(update.mediaPath);
+    update.mediaPath = null;
+    update.mediaMimetype = null;
+    update.mediaFilename = null;
   }
 
   return update;
 }
 
-app.patch("/api/my/auto-replies/:id", requireUserSession, async (req, res) => {
-  const existing = await dbGet("SELECT * FROM auto_replies WHERE id = ? AND user_id = ?", [
-    req.params.id,
-    req.user.id,
-  ]);
-  if (!existing) {
-    return res.status(404).json({ success: false, message: "Aturan tidak ditemukan", requestId: req.id });
-  }
+app.patch(
+  "/api/my/auto-replies/:id",
+  requireUserSession,
+  uploadSingleFileMiddleware("file"),
+  async (req, res) => {
+    const existing = await dbGet(
+      "SELECT * FROM auto_replies WHERE id = ? AND user_id = ?",
+      [req.params.id, req.user.id],
+    );
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Aturan tidak ditemukan",
+        requestId: req.id,
+      });
+    }
 
-  const update = await buildAutoReplyUpdate(req, res, existing, async (sessionId) => {
-    const row = await getSessionRow(sessionId);
-    return row && row.ownerType === "user" && row.ownerUserId === req.user.id;
-  });
-  if (!update) {
-    return; // response error sudah dikirim di dalam buildAutoReplyUpdate
-  }
+    const update = await buildAutoReplyUpdate(
+      req,
+      res,
+      existing,
+      async (sessionId) => {
+        const row = await getSessionRow(sessionId);
+        return (
+          row && row.ownerType === "user" && row.ownerUserId === req.user.id
+        );
+      },
+    );
+    if (!update) {
+      return; // response error sudah dikirim di dalam buildAutoReplyUpdate
+    }
 
-  await dbRun(
-    "UPDATE auto_replies SET keyword = ?, match_type = ?, reply_text = ?, session_id = ?, enabled = ? WHERE id = ?",
-    [update.keyword, update.matchType, update.replyText, update.sessionId, update.enabled, req.params.id],
-  );
+    await dbRun(
+      `UPDATE auto_replies
+     SET keyword = ?, match_type = ?, reply_text = ?, session_id = ?, enabled = ?,
+         media_path = ?, media_mimetype = ?, media_filename = ?
+     WHERE id = ?`,
+      [
+        update.keyword,
+        update.matchType,
+        update.replyText,
+        update.sessionId,
+        update.enabled,
+        update.mediaPath,
+        update.mediaMimetype,
+        update.mediaFilename,
+        req.params.id,
+      ],
+    );
 
-  return res.json({ success: true, message: "Aturan disimpan", requestId: req.id });
-});
+    return res.json({
+      success: true,
+      message: "Aturan disimpan",
+      requestId: req.id,
+    });
+  },
+);
 
 app.delete("/api/my/auto-replies/:id", requireUserSession, async (req, res) => {
-  const result = await dbRun("DELETE FROM auto_replies WHERE id = ? AND user_id = ?", [
-    req.params.id,
-    req.user.id,
-  ]);
-  if (result.changes === 0) {
-    return res.status(404).json({ success: false, message: "Aturan tidak ditemukan", requestId: req.id });
+  const existing = await dbGet(
+    "SELECT * FROM auto_replies WHERE id = ? AND user_id = ?",
+    [req.params.id, req.user.id],
+  );
+  if (!existing) {
+    return res.status(404).json({
+      success: false,
+      message: "Aturan tidak ditemukan",
+      requestId: req.id,
+    });
   }
-  return res.json({ success: true, message: "Aturan dihapus", requestId: req.id });
+
+  await dbRun("DELETE FROM auto_replies WHERE id = ?", [req.params.id]);
+  await deleteAutoReplyMediaFile(existing.mediaPath);
+
+  return res.json({
+    success: true,
+    message: "Aturan dihapus",
+    requestId: req.id,
+  });
 });
 
 // --- Kontak milik user ------------------------------------------------------
 
 app.get("/api/my/contacts", requireUserSession, async (req, res) => {
-  const rows = await dbAll("SELECT * FROM contacts WHERE user_id = ? ORDER BY name ASC", [req.user.id]);
-  const groups = [...new Set(rows.map((row) => row.groupName).filter(Boolean))].sort();
+  const rows = await dbAll(
+    "SELECT * FROM contacts WHERE user_id = ? ORDER BY name ASC",
+    [req.user.id],
+  );
+  const groups = [
+    ...new Set(rows.map((row) => row.groupName).filter(Boolean)),
+  ].sort();
 
   res.setHeader("Cache-Control", "no-store");
   return res.json({
@@ -10988,41 +14642,82 @@ app.get("/api/my/contacts", requireUserSession, async (req, res) => {
 
 app.post("/api/my/contacts", requireUserSession, async (req, res) => {
   const name = String((req.body && req.body.name) || "").trim();
-  const phone = String((req.body && req.body.phone) || "").replace(/[^\d]/g, "");
+  const phone = String((req.body && req.body.phone) || "").replace(
+    /[^\d]/g,
+    "",
+  );
   const groupName = String((req.body && req.body.groupName) || "").trim();
 
   if (!name) {
-    return res.status(400).json({ success: false, message: "Nama kontak wajib diisi", requestId: req.id });
+    return res.status(400).json({
+      success: false,
+      message: "Nama kontak wajib diisi",
+      requestId: req.id,
+    });
   }
   if (phone.length < 8) {
-    return res.status(400).json({ success: false, message: "Nomor HP tidak valid", requestId: req.id });
+    return res.status(400).json({
+      success: false,
+      message: "Nomor HP tidak valid",
+      requestId: req.id,
+    });
   }
 
-  const duplicate = await dbGet("SELECT id FROM contacts WHERE user_id = ? AND phone = ?", [req.user.id, phone]);
+  const duplicate = await dbGet(
+    "SELECT id FROM contacts WHERE user_id = ? AND phone = ?",
+    [req.user.id, phone],
+  );
   if (duplicate) {
-    return res.status(409).json({ success: false, message: "Nomor ini sudah ada di kontak kamu", requestId: req.id });
+    return res.status(409).json({
+      success: false,
+      message: "Nomor ini sudah ada di kontak kamu",
+      requestId: req.id,
+    });
   }
 
   await dbRun(
     "INSERT INTO contacts (id, user_id, name, phone, group_name, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-    [uuidv4(), req.user.id, name, phone, groupName || null, new Date().toISOString()],
+    [
+      uuidv4(),
+      req.user.id,
+      name,
+      phone,
+      groupName || null,
+      new Date().toISOString(),
+    ],
   );
 
-  return res.json({ success: true, message: "Kontak disimpan", requestId: req.id });
+  return res.json({
+    success: true,
+    message: "Kontak disimpan",
+    requestId: req.id,
+  });
 });
 
 // Import massal dari teks (satu baris = "Nama,Nomor"). Dipakai tombol Import
 // di portal supaya user tidak perlu input satu-satu.
 app.post("/api/my/contacts/import", requireUserSession, async (req, res) => {
   const raw = String((req.body && req.body.data) || "");
-  const groupName = String((req.body && req.body.groupName) || "").trim() || null;
+  const groupName =
+    String((req.body && req.body.groupName) || "").trim() || null;
 
-  const lines = raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
   if (!lines.length) {
-    return res.status(400).json({ success: false, message: "Data import kosong", requestId: req.id });
+    return res.status(400).json({
+      success: false,
+      message: "Data import kosong",
+      requestId: req.id,
+    });
   }
   if (lines.length > 1000) {
-    return res.status(400).json({ success: false, message: "Maksimum 1000 baris per import", requestId: req.id });
+    return res.status(400).json({
+      success: false,
+      message: "Maksimum 1000 baris per import",
+      requestId: req.id,
+    });
   }
 
   let imported = 0;
@@ -11038,7 +14733,10 @@ app.post("/api/my/contacts/import", requireUserSession, async (req, res) => {
       continue;
     }
 
-    const duplicate = await dbGet("SELECT id FROM contacts WHERE user_id = ? AND phone = ?", [req.user.id, phone]);
+    const duplicate = await dbGet(
+      "SELECT id FROM contacts WHERE user_id = ? AND phone = ?",
+      [req.user.id, phone],
+    );
     if (duplicate) {
       skipped.push(line);
       continue;
@@ -11051,7 +14749,11 @@ app.post("/api/my/contacts/import", requireUserSession, async (req, res) => {
     imported += 1;
   }
 
-  logger.info(`[${req.id}] Import kontak`, { user: req.user.username, imported, skipped: skipped.length });
+  logger.info(`[${req.id}] Import kontak`, {
+    user: req.user.username,
+    imported,
+    skipped: skipped.length,
+  });
 
   return res.json({
     success: true,
@@ -11063,24 +14765,40 @@ app.post("/api/my/contacts/import", requireUserSession, async (req, res) => {
 });
 
 app.delete("/api/my/contacts/:id", requireUserSession, async (req, res) => {
-  const result = await dbRun("DELETE FROM contacts WHERE id = ? AND user_id = ?", [req.params.id, req.user.id]);
+  const result = await dbRun(
+    "DELETE FROM contacts WHERE id = ? AND user_id = ?",
+    [req.params.id, req.user.id],
+  );
   if (result.changes === 0) {
-    return res.status(404).json({ success: false, message: "Kontak tidak ditemukan", requestId: req.id });
+    return res.status(404).json({
+      success: false,
+      message: "Kontak tidak ditemukan",
+      requestId: req.id,
+    });
   }
-  return res.json({ success: true, message: "Kontak dihapus", requestId: req.id });
+  return res.json({
+    success: true,
+    message: "Kontak dihapus",
+    requestId: req.id,
+  });
 });
 
 // --- Template pesan milik user ----------------------------------------------
 
 app.get("/api/my/templates", requireUserSession, async (req, res) => {
-  const rows = await dbAll("SELECT * FROM message_templates WHERE user_id = ? ORDER BY name ASC", [
-    req.user.id,
-  ]);
+  const rows = await dbAll(
+    "SELECT * FROM message_templates WHERE user_id = ? ORDER BY name ASC",
+    [req.user.id],
+  );
 
   res.setHeader("Cache-Control", "no-store");
   return res.json({
     success: true,
-    entries: rows.map((row) => ({ id: row.id, name: row.name, content: row.content })),
+    entries: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      content: row.content,
+    })),
     requestId: req.id,
   });
 });
@@ -11090,10 +14808,18 @@ app.post("/api/my/templates", requireUserSession, async (req, res) => {
   const content = String((req.body && req.body.content) || "").trim();
 
   if (!name) {
-    return res.status(400).json({ success: false, message: "Nama template wajib diisi", requestId: req.id });
+    return res.status(400).json({
+      success: false,
+      message: "Nama template wajib diisi",
+      requestId: req.id,
+    });
   }
   if (!content) {
-    return res.status(400).json({ success: false, message: "Isi template wajib diisi", requestId: req.id });
+    return res.status(400).json({
+      success: false,
+      message: "Isi template wajib diisi",
+      requestId: req.id,
+    });
   }
 
   await dbRun(
@@ -11101,18 +14827,30 @@ app.post("/api/my/templates", requireUserSession, async (req, res) => {
     [uuidv4(), req.user.id, name, content, new Date().toISOString()],
   );
 
-  return res.json({ success: true, message: "Template disimpan", requestId: req.id });
+  return res.json({
+    success: true,
+    message: "Template disimpan",
+    requestId: req.id,
+  });
 });
 
 app.delete("/api/my/templates/:id", requireUserSession, async (req, res) => {
-  const result = await dbRun("DELETE FROM message_templates WHERE id = ? AND user_id = ?", [
-    req.params.id,
-    req.user.id,
-  ]);
+  const result = await dbRun(
+    "DELETE FROM message_templates WHERE id = ? AND user_id = ?",
+    [req.params.id, req.user.id],
+  );
   if (result.changes === 0) {
-    return res.status(404).json({ success: false, message: "Template tidak ditemukan", requestId: req.id });
+    return res.status(404).json({
+      success: false,
+      message: "Template tidak ditemukan",
+      requestId: req.id,
+    });
   }
-  return res.json({ success: true, message: "Template dihapus", requestId: req.id });
+  return res.json({
+    success: true,
+    message: "Template dihapus",
+    requestId: req.id,
+  });
 });
 
 app.get("/api/my/api-key", requireUserSession, (req, res) => {
@@ -11128,54 +14866,79 @@ app.get("/api/my/api-key", requireUserSession, (req, res) => {
 // User tidak bisa generate ulang API key sendiri lagi — cuma admin yang bisa
 // (lewat tab Pengguna di dashboard admin), setelah user minta lewat chat WA.
 // Lihat tombol "Chat Admin di WhatsApp" di tab Dokumentasi API portal user.
-app.post("/api/admin/users/:id/api-key/regenerate", requireAdminSession, async (req, res) => {
-  const user = await findUserById(req.params.id);
-  if (!user) {
-    return res.status(404).json({ success: false, message: "Pengguna tidak ditemukan", requestId: req.id });
-  }
+app.post(
+  "/api/admin/users/:id/api-key/regenerate",
+  requireAdminSession,
+  async (req, res) => {
+    const user = await findUserById(req.params.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Pengguna tidak ditemukan",
+        requestId: req.id,
+      });
+    }
 
-  const apiKey = await generateApiKeyForUser(user.id, user.phone);
+    const apiKey = await generateApiKeyForUser(user.id, user.phone);
 
-  // Key lengkap CUMA dikirim lewat WhatsApp ke nomor terdaftar user — tidak
-  // pernah dikembalikan lewat response API, supaya tidak tersimpan di
-  // riwayat browser/network log admin. Key lama sudah tidak berlaku begitu
-  // generateApiKeyForUser dipanggil, terlepas dari sukses/gagalnya
-  // pengiriman WA di bawah ini.
-  const delivered = await sendUserNotification(
-    user.phone,
-    `API Key baru kamu (kunci lama otomatis tidak berlaku lagi):\n\n${apiKey}\n\nKunci ini cuma dikirim sekali lewat WhatsApp ke nomor ini — kalau hilang, hubungi admin lagi lewat tab Dokumentasi API.\n\n⚠️ JANGAN bagikan API key ini ke siapa pun. Siapa saja yang punya key ini bisa kirim pesan atas nama akun kamu.`,
-  );
+    // Key lengkap CUMA dikirim lewat WhatsApp ke nomor terdaftar user — tidak
+    // pernah dikembalikan lewat response API, supaya tidak tersimpan di
+    // riwayat browser/network log admin. Key lama sudah tidak berlaku begitu
+    // generateApiKeyForUser dipanggil, terlepas dari sukses/gagalnya
+    // pengiriman WA di bawah ini.
+    const delivered = await sendUserNotification(
+      user.phone,
+      `API Key baru kamu (kunci lama otomatis tidak berlaku lagi):\n\n${apiKey}\n\nKunci ini cuma dikirim sekali lewat WhatsApp ke nomor ini — kalau hilang, hubungi admin lagi lewat tab Dokumentasi API.\n\n⚠️ JANGAN bagikan API key ini ke siapa pun. Siapa saja yang punya key ini bisa kirim pesan atas nama akun kamu.`,
+    );
 
-  logger.info(`[${req.id}] Admin generate ulang API key user`, { user: user.username, delivered });
+    logger.info(`[${req.id}] Admin generate ulang API key user`, {
+      user: user.username,
+      delivered,
+    });
+    await logAdminActivity(req, "user_api_key_regenerated", {
+      userId: user.id,
+      username: user.username,
+      delivered,
+    });
 
-  if (!delivered) {
-    return res.status(502).json({
-      success: false,
-      message: "API key baru berhasil dibuat, tapi gagal dikirim ke WhatsApp user (WAG notifier belum terhubung). Key lama sudah tidak berlaku — coba lagi beberapa saat lagi.",
+    if (!delivered) {
+      return res.status(502).json({
+        success: false,
+        message:
+          "API key baru berhasil dibuat, tapi gagal dikirim ke WhatsApp user (WAG notifier belum terhubung). Key lama sudah tidak berlaku — coba lagi beberapa saat lagi.",
+        requestId: req.id,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `API key baru berhasil dibuat dan dikirim ke WhatsApp ${user.username}.`,
       requestId: req.id,
     });
-  }
-
-  return res.json({
-    success: true,
-    message: `API key baru berhasil dibuat dan dikirim ke WhatsApp ${user.username}.`,
-    requestId: req.id,
-  });
-});
+  },
+);
 
 app.post("/api/my/upgrade-request", requireUserSession, async (req, res) => {
   const plan = String((req.body && req.body.plan) || "").trim();
 
   if (!["pro", "max"].includes(plan)) {
-    return res.status(400).json({ success: false, message: "Paket tidak valid", requestId: req.id });
+    return res.status(400).json({
+      success: false,
+      message: "Paket tidak valid",
+      requestId: req.id,
+    });
   }
 
   await setUserPendingPlanRequest(req.user.id, plan);
 
   const price = (await getPlansWithPricing())[plan].price;
-  const priceText = price > 0 ? `Rp${price.toLocaleString("id-ID")}/bulan` : "gratis";
+  const priceText =
+    price > 0 ? `Rp${price.toLocaleString("id-ID")}/bulan` : "gratis";
 
-  logger.info(`[${req.id}] Permintaan upgrade paket`, { user: req.user.username, plan });
+  logger.info(`[${req.id}] Permintaan upgrade paket`, {
+    user: req.user.username,
+    plan,
+  });
 
   sendAdminNotification(
     `${req.user.username} (${req.user.phone}) minta upgrade ke paket ${PLAN_DEFS[plan].label} (${priceText}). Buka tab Pengguna untuk konfirmasi.`,
@@ -11203,155 +14966,278 @@ async function isAdminOwnedSession(sessionId) {
 // "Berlaku di Akun" di panel Balas Otomatis admin, supaya tidak tercampur
 // dengan akun WAG milik user (yang punya scope terpisah).
 app.get("/api/admin/own-sessions", requireAdminSession, async (req, res) => {
-  const rows = await dbAll("SELECT id, name FROM sessions WHERE owner_type = 'admin' ORDER BY created_at ASC");
+  const rows = await dbAll(
+    "SELECT id, name FROM sessions WHERE owner_type = 'admin' ORDER BY created_at ASC",
+  );
   res.setHeader("Cache-Control", "no-store");
   return res.json({ success: true, entries: rows, requestId: req.id });
 });
 
 app.get("/api/admin/auto-replies", requireAdminSession, async (req, res) => {
-  const rows = await dbAll("SELECT * FROM auto_replies WHERE admin_scope = 1 ORDER BY created_at ASC");
+  const rows = await dbAll(
+    "SELECT * FROM auto_replies WHERE admin_scope = 1 ORDER BY created_at ASC",
+  );
 
   res.setHeader("Cache-Control", "no-store");
   return res.json({
     success: true,
-    entries: rows.map((row) => ({
-      id: row.id,
-      sessionId: row.sessionId,
-      keyword: row.keyword,
-      matchType: row.matchType,
-      replyText: row.replyText,
-      enabled: Boolean(row.enabled),
-      createdAt: row.createdAt,
-    })),
+    entries: rows.map(autoReplyRowToPublic),
     requestId: req.id,
   });
 });
 
-app.post("/api/admin/auto-replies", requireAdminSession, async (req, res) => {
-  const { keyword, replyText, matchType, sessionId } = req.body || {};
+app.post(
+  "/api/admin/auto-replies",
+  requireAdminSession,
+  uploadSingleFileMiddleware("file"),
+  async (req, res) => {
+    const { keyword, replyText, matchType, sessionId } = req.body || {};
 
-  const trimmedKeyword = String(keyword || "").trim();
-  const trimmedReply = String(replyText || "").trim();
+    const trimmedKeyword = String(keyword || "").trim();
+    const trimmedReply = String(replyText || "").trim();
 
-  if (!trimmedKeyword) {
-    return res.status(400).json({ success: false, message: "Kata kunci wajib diisi", requestId: req.id });
-  }
-  if (!trimmedReply) {
-    return res.status(400).json({ success: false, message: "Isi balasan wajib diisi", requestId: req.id });
-  }
-
-  const resolvedMatchType = AUTO_REPLY_MATCH_TYPES.includes(matchType) ? matchType : "contains";
-
-  let resolvedSessionId = null;
-  if (sessionId) {
-    if (!(await isAdminOwnedSession(sessionId))) {
-      return res.status(404).json({ success: false, message: "Akun WhatsApp tidak ditemukan", requestId: req.id });
+    if (!trimmedKeyword) {
+      return res.status(400).json({
+        success: false,
+        message: "Kata kunci wajib diisi",
+        requestId: req.id,
+      });
     }
-    resolvedSessionId = sessionId;
-  }
+    if (!trimmedReply) {
+      return res.status(400).json({
+        success: false,
+        message: "Isi balasan wajib diisi",
+        requestId: req.id,
+      });
+    }
 
-  const id = uuidv4();
-  await dbRun(
-    `INSERT INTO auto_replies (id, user_id, admin_scope, session_id, keyword, match_type, reply_text, enabled, created_at)
-     VALUES (@id, NULL, 1, @sessionId, @keyword, @matchType, @replyText, 1, @createdAt)`,
-    {
-      id,
-      sessionId: resolvedSessionId,
+    const resolvedMatchType = AUTO_REPLY_MATCH_TYPES.includes(matchType)
+      ? matchType
+      : "contains";
+
+    let resolvedSessionId = null;
+    if (sessionId) {
+      if (!(await isAdminOwnedSession(sessionId))) {
+        return res.status(404).json({
+          success: false,
+          message: "Akun WhatsApp tidak ditemukan",
+          requestId: req.id,
+        });
+      }
+      resolvedSessionId = sessionId;
+    }
+
+    const id = uuidv4();
+    let mediaInfo = { path: null, mimetype: null, fileName: null };
+    if (req.file) {
+      mediaInfo = await saveAutoReplyMedia(id, req.file);
+    }
+
+    await dbRun(
+      `INSERT INTO auto_replies (id, user_id, admin_scope, session_id, keyword, match_type, reply_text, enabled, media_path, media_mimetype, media_filename, created_at)
+     VALUES (@id, NULL, 1, @sessionId, @keyword, @matchType, @replyText, 1, @mediaPath, @mediaMimetype, @mediaFilename, @createdAt)`,
+      {
+        id,
+        sessionId: resolvedSessionId,
+        keyword: trimmedKeyword,
+        matchType: resolvedMatchType,
+        replyText: trimmedReply,
+        mediaPath: mediaInfo.path,
+        mediaMimetype: mediaInfo.mimetype,
+        mediaFilename: mediaInfo.fileName,
+        createdAt: new Date().toISOString(),
+      },
+    );
+
+    logger.info(`[${req.id}] Aturan balas otomatis admin dibuat`, {
       keyword: trimmedKeyword,
-      matchType: resolvedMatchType,
-      replyText: trimmedReply,
-      createdAt: new Date().toISOString(),
-    },
-  );
+    });
 
-  logger.info(`[${req.id}] Aturan balas otomatis admin dibuat`, { keyword: trimmedKeyword });
+    return res.json({
+      success: true,
+      message: "Aturan balas otomatis disimpan",
+      id,
+      requestId: req.id,
+    });
+  },
+);
 
-  return res.json({ success: true, message: "Aturan balas otomatis disimpan", id, requestId: req.id });
-});
+app.patch(
+  "/api/admin/auto-replies/:id",
+  requireAdminSession,
+  uploadSingleFileMiddleware("file"),
+  async (req, res) => {
+    const existing = await dbGet(
+      "SELECT * FROM auto_replies WHERE id = ? AND admin_scope = 1",
+      [req.params.id],
+    );
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Aturan tidak ditemukan",
+        requestId: req.id,
+      });
+    }
 
-app.patch("/api/admin/auto-replies/:id", requireAdminSession, async (req, res) => {
-  const existing = await dbGet("SELECT * FROM auto_replies WHERE id = ? AND admin_scope = 1", [req.params.id]);
-  if (!existing) {
-    return res.status(404).json({ success: false, message: "Aturan tidak ditemukan", requestId: req.id });
-  }
+    const update = await buildAutoReplyUpdate(
+      req,
+      res,
+      existing,
+      isAdminOwnedSession,
+    );
+    if (!update) {
+      return;
+    }
 
-  const update = await buildAutoReplyUpdate(req, res, existing, isAdminOwnedSession);
-  if (!update) {
-    return;
-  }
+    await dbRun(
+      `UPDATE auto_replies
+     SET keyword = ?, match_type = ?, reply_text = ?, session_id = ?, enabled = ?,
+         media_path = ?, media_mimetype = ?, media_filename = ?
+     WHERE id = ?`,
+      [
+        update.keyword,
+        update.matchType,
+        update.replyText,
+        update.sessionId,
+        update.enabled,
+        update.mediaPath,
+        update.mediaMimetype,
+        update.mediaFilename,
+        req.params.id,
+      ],
+    );
 
-  await dbRun(
-    "UPDATE auto_replies SET keyword = ?, match_type = ?, reply_text = ?, session_id = ?, enabled = ? WHERE id = ?",
-    [update.keyword, update.matchType, update.replyText, update.sessionId, update.enabled, req.params.id],
-  );
+    return res.json({
+      success: true,
+      message: "Aturan disimpan",
+      requestId: req.id,
+    });
+  },
+);
 
-  return res.json({ success: true, message: "Aturan disimpan", requestId: req.id });
-});
+app.delete(
+  "/api/admin/auto-replies/:id",
+  requireAdminSession,
+  async (req, res) => {
+    const existing = await dbGet(
+      "SELECT * FROM auto_replies WHERE id = ? AND admin_scope = 1",
+      [req.params.id],
+    );
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Aturan tidak ditemukan",
+        requestId: req.id,
+      });
+    }
 
-app.delete("/api/admin/auto-replies/:id", requireAdminSession, async (req, res) => {
-  const result = await dbRun("DELETE FROM auto_replies WHERE id = ? AND admin_scope = 1", [req.params.id]);
-  if (result.changes === 0) {
-    return res.status(404).json({ success: false, message: "Aturan tidak ditemukan", requestId: req.id });
-  }
-  return res.json({ success: true, message: "Aturan dihapus", requestId: req.id });
-});
+    await dbRun("DELETE FROM auto_replies WHERE id = ?", [req.params.id]);
+    await deleteAutoReplyMediaFile(existing.mediaPath);
+
+    return res.json({
+      success: true,
+      message: "Aturan dihapus",
+      requestId: req.id,
+    });
+  },
+);
 
 app.get("/api/admin/requests", requireAdminSession, async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  return res.json({ success: true, entries: await listPendingRequests(), requestId: req.id });
+  return res.json({
+    success: true,
+    entries: await listPendingRequests(),
+    requestId: req.id,
+  });
 });
 
-app.post("/api/admin/requests/:id/approve", requireAdminSession, async (req, res) => {
-  if (sessions.size >= MAX_ACCOUNTS) {
-    return res.status(409).json({
-      success: false,
-      message: `Batas maksimum ${MAX_ACCOUNTS} akun WhatsApp sudah tercapai. Naikkan batas ini di tab Pengaturan dulu sebelum approve.`,
-      requestId: req.id,
-    });
-  }
-
-  try {
-    const row = await approveSessionRequest(req.params.id, req.admin.id);
-    activateSessionRuntime(row);
-
-    const owner = await findUserById(row.ownerUserId);
-
-    logger.info(`[${req.id}] Permintaan WAG di-approve`, { id: row.id, owner: owner?.username });
-
-    if (owner) {
-      sendUserNotification(
-        owner.phone,
-        `Permintaan akun WAG kamu disetujui! Buka ${PUBLIC_BASE_URL || ""}/app untuk scan QR.`,
-      );
+app.post(
+  "/api/admin/requests/:id/approve",
+  requireAdminSession,
+  async (req, res) => {
+    if (sessions.size >= MAX_ACCOUNTS) {
+      return res.status(409).json({
+        success: false,
+        message: `Batas maksimum ${MAX_ACCOUNTS} akun WhatsApp sudah tercapai. Naikkan batas ini di tab Pengaturan dulu sebelum approve.`,
+        requestId: req.id,
+      });
     }
 
-    return res.json({ success: true, message: "Permintaan disetujui, sesi WA sedang disiapkan.", requestId: req.id });
-  } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
-  }
-});
+    try {
+      const row = await approveSessionRequest(req.params.id, req.admin.id);
+      activateSessionRuntime(row);
 
-app.post("/api/admin/requests/:id/reject", requireAdminSession, async (req, res) => {
-  const reason = String((req.body && req.body.reason) || "").trim();
+      const owner = await findUserById(row.ownerUserId);
 
-  try {
-    const row = await rejectSessionRequest(req.params.id, reason);
-    const owner = await findUserById(row.ownerUserId);
+      logger.info(`[${req.id}] Permintaan WAG di-approve`, {
+        id: row.id,
+        owner: owner?.username,
+      });
+      await logAdminActivity(req, "session_request_approved", {
+        requestId: row.id,
+        owner: owner?.username,
+      });
 
-    logger.info(`[${req.id}] Permintaan WAG ditolak`, { id: row.id, owner: owner?.username, reason });
+      if (owner) {
+        sendUserNotification(
+          owner.phone,
+          `Permintaan akun WAG kamu disetujui! Buka ${PUBLIC_BASE_URL || ""}/app untuk scan QR.`,
+        );
+      }
 
-    if (owner) {
-      sendUserNotification(
-        owner.phone,
-        `Permintaan akun WAG kamu ditolak.${reason ? ` Alasan: ${reason}` : ""}`,
-      );
+      return res.json({
+        success: true,
+        message: "Permintaan disetujui, sesi WA sedang disiapkan.",
+        requestId: req.id,
+      });
+    } catch (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: error.message, requestId: req.id });
     }
+  },
+);
 
-    return res.json({ success: true, message: "Permintaan ditolak", requestId: req.id });
-  } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
-  }
-});
+app.post(
+  "/api/admin/requests/:id/reject",
+  requireAdminSession,
+  async (req, res) => {
+    const reason = String((req.body && req.body.reason) || "").trim();
+
+    try {
+      const row = await rejectSessionRequest(req.params.id, reason);
+      const owner = await findUserById(row.ownerUserId);
+
+      logger.info(`[${req.id}] Permintaan WAG ditolak`, {
+        id: row.id,
+        owner: owner?.username,
+        reason,
+      });
+      await logAdminActivity(req, "session_request_rejected", {
+        requestId: row.id,
+        owner: owner?.username,
+        reason: reason || null,
+      });
+
+      if (owner) {
+        sendUserNotification(
+          owner.phone,
+          `Permintaan akun WAG kamu ditolak.${reason ? ` Alasan: ${reason}` : ""}`,
+        );
+      }
+
+      return res.json({
+        success: true,
+        message: "Permintaan ditolak",
+        requestId: req.id,
+      });
+    } catch (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: error.message, requestId: req.id });
+    }
+  },
+);
 
 app.get("/api/admin/users", requireAdminSession, async (req, res) => {
   const users = await listUsers();
@@ -11369,7 +15255,12 @@ app.get("/api/admin/users", requireAdminSession, async (req, res) => {
   }
 
   res.setHeader("Cache-Control", "no-store");
-  return res.json({ success: true, entries, plans: PLAN_DEFS, requestId: req.id });
+  return res.json({
+    success: true,
+    entries,
+    plans: PLAN_DEFS,
+    requestId: req.id,
+  });
 });
 
 app.patch("/api/admin/users/:id", requireAdminSession, async (req, res) => {
@@ -11378,7 +15269,16 @@ app.patch("/api/admin/users/:id", requireAdminSession, async (req, res) => {
   try {
     const previous = await findUserById(req.params.id);
     await updateUserPlan(req.params.id, plan);
-    logger.info(`[${req.id}] Paket user diperbarui`, { id: req.params.id, plan });
+    logger.info(`[${req.id}] Paket user diperbarui`, {
+      id: req.params.id,
+      plan,
+    });
+    await logAdminActivity(req, "user_plan_updated", {
+      userId: req.params.id,
+      username: previous?.username,
+      fromPlan: previous?.plan,
+      toPlan: plan,
+    });
 
     if (previous && previous.plan !== plan) {
       const def = PLAN_DEFS[plan];
@@ -11392,9 +15292,15 @@ app.patch("/api/admin/users/:id", requireAdminSession, async (req, res) => {
       );
     }
 
-    return res.json({ success: true, message: "Paket berhasil disimpan", requestId: req.id });
+    return res.json({
+      success: true,
+      message: "Paket berhasil disimpan",
+      requestId: req.id,
+    });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 });
 
@@ -11402,6 +15308,7 @@ app.delete("/api/admin/users/:id", requireAdminSession, async (req, res) => {
   const userId = req.params.id;
 
   try {
+    const target = await findUserById(userId);
     const ownedSessions = await listUserSessionRows(userId);
     for (const row of ownedSessions) {
       await removeUserOwnedSession(row.id, userId).catch(() => {});
@@ -11410,11 +15317,36 @@ app.delete("/api/admin/users/:id", requireAdminSession, async (req, res) => {
     await deleteUserRow(userId);
 
     logger.info(`[${req.id}] User dihapus`, { id: userId });
+    await logAdminActivity(req, "user_deleted", {
+      userId,
+      username: target?.username,
+    });
 
-    return res.json({ success: true, message: "Pengguna dihapus", requestId: req.id });
+    return res.json({
+      success: true,
+      message: "Pengguna dihapus",
+      requestId: req.id,
+    });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
+});
+
+app.get("/api/admin/audit-log", requireAdminSession, async (req, res) => {
+  const limit = Math.min(200, Math.max(10, Number(req.query.limit) || 100));
+  const rows = await dbAll(
+    "SELECT * FROM admin_audit_log ORDER BY seq DESC LIMIT ?",
+    [limit],
+  );
+
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({
+    success: true,
+    entries: rows.map(rowToAuditLogEntry),
+    requestId: req.id,
+  });
 });
 
 app.get("/api/admin/config", requireAdminSession, async (req, res) => {
@@ -11428,6 +15360,7 @@ app.get("/api/admin/config", requireAdminSession, async (req, res) => {
     config: {
       notifierSessionId: (await getConfig("notifierSessionId")) || "",
       adminNotifyPhone: (await getConfig("adminNotifyPhone")) || "",
+      twoFactorEnabled: (await getConfig("twoFactorEnabled")) === "true",
     },
     plans: await getPlansWithPricing(),
     connectedSessions,
@@ -11436,16 +15369,34 @@ app.get("/api/admin/config", requireAdminSession, async (req, res) => {
 });
 
 app.post("/api/admin/config", requireAdminSession, async (req, res) => {
-  const { notifierSessionId, adminNotifyPhone, planProPrice, planMaxPrice } = req.body || {};
+  const {
+    notifierSessionId,
+    adminNotifyPhone,
+    planProPrice,
+    planMaxPrice,
+    twoFactorEnabled,
+  } = req.body || {};
 
   await setConfig("notifierSessionId", String(notifierSessionId || ""));
-  await setConfig("adminNotifyPhone", String(adminNotifyPhone || "").replace(/[^\d]/g, ""));
+  await setConfig(
+    "adminNotifyPhone",
+    String(adminNotifyPhone || "").replace(/[^\d]/g, ""),
+  );
 
   if (planProPrice !== undefined) {
-    await setConfig("planPrice_pro", String(Math.max(0, Number(planProPrice) || 0)));
+    await setConfig(
+      "planPrice_pro",
+      String(Math.max(0, Number(planProPrice) || 0)),
+    );
   }
   if (planMaxPrice !== undefined) {
-    await setConfig("planPrice_max", String(Math.max(0, Number(planMaxPrice) || 0)));
+    await setConfig(
+      "planPrice_max",
+      String(Math.max(0, Number(planMaxPrice) || 0)),
+    );
+  }
+  if (twoFactorEnabled !== undefined) {
+    await setConfig("twoFactorEnabled", twoFactorEnabled ? "true" : "false");
   }
 
   logger.info(`[${req.id}] Konfigurasi notifikasi & harga paket diperbarui`, {
@@ -11453,16 +15404,31 @@ app.post("/api/admin/config", requireAdminSession, async (req, res) => {
     adminNotifyPhone,
     planProPrice,
     planMaxPrice,
+    twoFactorEnabled,
+  });
+  await logAdminActivity(req, "config_updated", {
+    notifierSessionId,
+    adminNotifyPhone,
+    planProPrice,
+    planMaxPrice,
+    twoFactorEnabled,
   });
 
-  return res.json({ success: true, message: "Konfigurasi tersimpan", requestId: req.id });
+  return res.json({
+    success: true,
+    message: "Konfigurasi tersimpan",
+    requestId: req.id,
+  });
 });
 
 app.get("/api/admin/payment-config", requireAdminSession, async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   return res.json({
     success: true,
-    config: { ...(await getPaymentConfig()), qrisImage: (await getConfig("paymentQrisImage")) || "" },
+    config: {
+      ...(await getPaymentConfig()),
+      qrisImage: (await getConfig("paymentQrisImage")) || "",
+    },
     requestId: req.id,
   });
 });
@@ -11477,7 +15443,9 @@ app.post(
           err.code === "LIMIT_FILE_SIZE"
             ? `Ukuran gambar melebihi batas ${Math.round(MAX_FILE_SIZE_BYTES / 1024 / 1024)}MB`
             : err.message;
-        return res.status(400).json({ success: false, message, requestId: req.id });
+        return res
+          .status(400)
+          .json({ success: false, message, requestId: req.id });
       }
       return next();
     });
@@ -11499,17 +15467,29 @@ app.post(
       hasNewQris: Boolean(req.file),
     });
 
-    return res.json({ success: true, message: "Konfigurasi pembayaran tersimpan", requestId: req.id });
+    return res.json({
+      success: true,
+      message: "Konfigurasi pembayaran tersimpan",
+      requestId: req.id,
+    });
   },
 );
 
-app.delete("/api/admin/payment-config/qris", requireAdminSession, async (req, res) => {
-  await setConfig("paymentQrisImage", "");
-  logger.info(`[${req.id}] Gambar QRIS dihapus`);
-  return res.json({ success: true, message: "Gambar QRIS dihapus", requestId: req.id });
-});
+app.delete(
+  "/api/admin/payment-config/qris",
+  requireAdminSession,
+  async (req, res) => {
+    await setConfig("paymentQrisImage", "");
+    logger.info(`[${req.id}] Gambar QRIS dihapus`);
+    return res.json({
+      success: true,
+      message: "Gambar QRIS dihapus",
+      requestId: req.id,
+    });
+  },
+);
 
-app.get("/api/settings", (req, res) => {
+app.get("/api/settings", requireAdminSession, (req, res) => {
   const currentValues = parseEnvContent(readEnvFileContent());
 
   const groups = SETTINGS_GROUPS.map((group) => ({
@@ -11529,8 +15509,9 @@ app.get("/api/settings", (req, res) => {
   });
 });
 
-app.post("/api/settings", (req, res) => {
-  const body = req.body && typeof req.body === "object" ? req.body.values : null;
+app.post("/api/settings", requireAdminSession, (req, res) => {
+  const body =
+    req.body && typeof req.body === "object" ? req.body.values : null;
 
   if (!body || typeof body !== "object") {
     return res.status(400).json({
@@ -11549,7 +15530,9 @@ app.post("/api/settings", (req, res) => {
       continue;
     }
 
-    updates[key] = String(rawValue ?? "").replace(/[\r\n]/g, " ").trim();
+    updates[key] = String(rawValue ?? "")
+      .replace(/[\r\n]/g, " ")
+      .trim();
   }
 
   if (invalidKeys.length > 0) {
@@ -11574,11 +15557,14 @@ app.post("/api/settings", (req, res) => {
     const redirectUrl = `${req.protocol}://${displayHost}:${newPort}/#settings`;
     const portChanged = newPort !== PORT;
 
-    logger.info(`[${req.id}] Pengaturan .env diperbarui, menjadwalkan restart`, {
-      keys: Object.keys(updates),
-      portChanged,
-      newPort,
-    });
+    logger.info(
+      `[${req.id}] Pengaturan .env diperbarui, menjadwalkan restart`,
+      {
+        keys: Object.keys(updates),
+        portChanged,
+        newPort,
+      },
+    );
 
     res.json({
       success: true,
@@ -11617,12 +15603,29 @@ app.get("/api/admins", async (req, res) => {
 });
 
 app.post("/api/admins", async (req, res) => {
-  const { username, password } = req.body || {};
+  const { username, password, phone } = req.body || {};
 
   try {
-    const admin = await createAdmin(username, password);
+    const admin = await createAdmin(username, password, phone);
 
-    logger.info(`[${req.id}] Admin baru dibuat`, { username: admin.username });
+    let delivered = false;
+    if (admin.phone) {
+      delivered = await sendUserNotification(
+        admin.phone,
+        `Halo ${admin.username}, akun admin kamu di dashboard ${APP_NAME} berhasil dibuat.\n\nLogin pakai username & password yang diberikan admin yang membuatkan akun ini, lalu segera ganti password lewat tab Pengaturan > Kelola Admin.`,
+      );
+    }
+
+    logger.info(`[${req.id}] Admin baru dibuat`, {
+      username: admin.username,
+      hasPhone: Boolean(admin.phone),
+      delivered,
+    });
+    await logAdminActivity(req, "admin_created", {
+      newAdminId: admin.id,
+      newAdminUsername: admin.username,
+      hasPhone: Boolean(admin.phone),
+    });
 
     return res.json({
       success: true,
@@ -11631,31 +15634,58 @@ app.post("/api/admins", async (req, res) => {
       requestId: req.id,
     });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 });
 
 app.patch("/api/admins/:id", async (req, res) => {
-  const { password } = req.body || {};
+  const { password, phone } = req.body || {};
 
   try {
-    await updateAdminPassword(req.params.id, password);
-
-    logger.info(`[${req.id}] Password admin diperbarui`, { id: req.params.id });
+    const target = await findAdminById(req.params.id);
+    if (password !== undefined) {
+      await updateAdminPassword(req.params.id, password);
+      logger.info(`[${req.id}] Password admin diperbarui`, {
+        id: req.params.id,
+      });
+      await logAdminActivity(req, "admin_password_changed", {
+        targetAdminId: req.params.id,
+        targetAdminUsername: target?.username,
+      });
+    }
+    if (phone !== undefined) {
+      await updateAdminPhone(req.params.id, phone);
+      logger.info(`[${req.id}] Nomor WA admin diperbarui`, {
+        id: req.params.id,
+      });
+      await logAdminActivity(req, "admin_phone_changed", {
+        targetAdminId: req.params.id,
+        targetAdminUsername: target?.username,
+      });
+    }
 
     return res.json({
       success: true,
-      message: "Password admin berhasil diperbarui",
+      message: "Perubahan admin berhasil disimpan",
       requestId: req.id,
     });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 });
 
 app.delete("/api/admins/:id", async (req, res) => {
   try {
+    const target = await findAdminById(req.params.id);
     await deleteAdmin(req.params.id);
+    await logAdminActivity(req, "admin_deleted", {
+      targetAdminId: req.params.id,
+      targetAdminUsername: target?.username,
+    });
 
     logger.info(`[${req.id}] Admin dihapus`, { id: req.params.id });
 
@@ -11665,11 +15695,13 @@ app.delete("/api/admins/:id", async (req, res) => {
       requestId: req.id,
     });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
+    return res
+      .status(400)
+      .json({ success: false, message: error.message, requestId: req.id });
   }
 });
 
-app.get("/api/logs", (req, res) => {
+app.get("/api/logs", requireAdminSession, (req, res) => {
   const type = ["combined", "error", "whatsapp"].includes(req.query.type)
     ? req.query.type
     : "combined";
@@ -11685,7 +15717,7 @@ app.get("/api/logs", (req, res) => {
   });
 });
 
-app.get("/api/history", async (req, res) => {
+app.get("/api/history", requireAdminSession, async (req, res) => {
   const limit = Math.min(500, Math.max(10, Number(req.query.limit) || 100));
   const { entries, total } = await listHistory(limit);
 
@@ -11698,119 +15730,149 @@ app.get("/api/history", async (req, res) => {
   });
 });
 
-app.post("/api/broadcast", (req, res, next) => {
-  upload.single("file")(req, res, (err) => {
-    if (err) {
-      const message =
-        err.code === "LIMIT_FILE_SIZE"
-          ? `Ukuran file melebihi batas ${Math.round(MAX_FILE_SIZE_BYTES / 1024 / 1024)}MB`
-          : err.message;
+// Grafik pengiriman/hari (admin lihat SEMUA riwayat, bukan cuma akun WAG
+// miliknya sendiri — konsisten dengan tab Riwayat admin yang juga unscoped).
+app.get("/api/admin/stats/messages", requireAdminSession, async (req, res) => {
+  const days = Math.min(90, Math.max(1, Number(req.query.days) || 14));
+  const { daily, totals } = await buildDailyMessageStats(days);
 
-      return res.status(400).json({ success: false, message, requestId: req.id });
-    }
-
-    return next();
-  });
-}, async (req, res) => {
-  const clientIp = getClientIp(req);
-  let targets;
-
-  try {
-    const rawNumbers = String(req.body.numbers || "")
-      .split(/[\n,]+/)
-      .map((value) => value.trim())
-      .filter(Boolean);
-
-    if (!rawNumbers.length) {
-      throw new Error("Daftar nomor tujuan wajib diisi (pisahkan dengan koma atau baris baru)");
-    }
-
-    if (rawNumbers.length > MAX_BROADCAST_TARGETS) {
-      throw new Error(`Maksimum ${MAX_BROADCAST_TARGETS} nomor per broadcast`);
-    }
-
-    targets = rawNumbers.map((raw) => ({ raw, jid: normalizeRecipient(raw) }));
-  } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
-  }
-
-  let message;
-  try {
-    message = normalizeOptionalCaption(req.body.message);
-    if (!req.file) {
-      message = normalizeMessage(message);
-    }
-  } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
-  }
-
-  const session = resolveSessionOrRespond(req, res);
-  if (!session) {
-    return;
-  }
-
-  if (!session.isConnected || !session.sock) {
-    return res.status(503).json({
-      success: false,
-      message: "WhatsApp belum terhubung",
-      requestId: req.id,
-    });
-  }
-
-  const content = req.file ? buildMediaMessage(req.file, message) : { text: message };
-  const type = req.file ? (message ? "file+text" : "file") : "text";
-
-  logger.info(`[${req.id}] Broadcast dimulai`, {
-    clientIp,
-    session: session.id,
-    total: targets.length,
-    type,
-  });
-
-  targets.forEach(({ jid }) => {
-    const maskedJid = maskDestination(jid);
-
-    enqueueMessageSend(session, { jid, content })
-      .then(({ result }) => {
-        recordHistory({
-          source: "broadcast",
-          sessionId: session.id,
-          to: maskedJid,
-          type,
-          message: message.slice(0, 120),
-          status: "sent",
-          messageId: result?.key?.id,
-          requestId: req.id,
-        });
-      })
-      .catch((error) => {
-        logger.error(`[${req.id}] Broadcast gagal ke satu nomor`, {
-          to: maskedJid,
-          error: error.message,
-        });
-
-        recordHistory({
-          source: "broadcast",
-          sessionId: session.id,
-          to: maskedJid,
-          type,
-          message: message.slice(0, 120),
-          status: "failed",
-          error: error.message,
-          requestId: req.id,
-        });
-      });
-  });
-
-  return res.json({
-    success: true,
-    message: `Broadcast dijadwalkan ke ${targets.length} nomor. Cek tab Riwayat untuk status pengiriman.`,
-    total: targets.length,
-    requestId: req.id,
-  });
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({ success: true, days, daily, totals, requestId: req.id });
 });
 
-app.get("/api/schedule", async (req, res) => {
+app.post(
+  "/api/broadcast",
+  requireAdminSession,
+  (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err) {
+        const message =
+          err.code === "LIMIT_FILE_SIZE"
+            ? `Ukuran file melebihi batas ${Math.round(MAX_FILE_SIZE_BYTES / 1024 / 1024)}MB`
+            : err.message;
+
+        return res
+          .status(400)
+          .json({ success: false, message, requestId: req.id });
+      }
+
+      return next();
+    });
+  },
+  async (req, res) => {
+    const clientIp = getClientIp(req);
+    let targets;
+
+    try {
+      const rawNumbers = String(req.body.numbers || "")
+        .split(/[\n,]+/)
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (!rawNumbers.length) {
+        throw new Error(
+          "Daftar nomor tujuan wajib diisi (pisahkan dengan koma atau baris baru)",
+        );
+      }
+
+      if (rawNumbers.length > MAX_BROADCAST_TARGETS) {
+        throw new Error(
+          `Maksimum ${MAX_BROADCAST_TARGETS} nomor per broadcast`,
+        );
+      }
+
+      targets = rawNumbers.map((raw) => ({
+        raw,
+        jid: normalizeRecipient(raw),
+      }));
+    } catch (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: error.message, requestId: req.id });
+    }
+
+    let message;
+    try {
+      message = normalizeOptionalCaption(req.body.message);
+      if (!req.file) {
+        message = normalizeMessage(message);
+      }
+    } catch (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: error.message, requestId: req.id });
+    }
+
+    const session = resolveSessionOrRespond(req, res);
+    if (!session) {
+      return;
+    }
+
+    if (!session.isConnected || !session.sock) {
+      return res.status(503).json({
+        success: false,
+        message: "WhatsApp belum terhubung",
+        requestId: req.id,
+      });
+    }
+
+    const content = req.file
+      ? buildMediaMessage(req.file, message)
+      : { text: message };
+    const type = req.file ? (message ? "file+text" : "file") : "text";
+
+    logger.info(`[${req.id}] Broadcast dimulai`, {
+      clientIp,
+      session: session.id,
+      total: targets.length,
+      type,
+    });
+
+    targets.forEach(({ jid }) => {
+      const maskedJid = maskDestination(jid);
+
+      enqueueMessageSend(session, { jid, content })
+        .then(({ result }) => {
+          recordHistory({
+            source: "broadcast",
+            sessionId: session.id,
+            to: maskedJid,
+            type,
+            message: message.slice(0, 120),
+            status: "sent",
+            messageId: result?.key?.id,
+            requestId: req.id,
+          });
+        })
+        .catch((error) => {
+          logger.error(`[${req.id}] Broadcast gagal ke satu nomor`, {
+            to: maskedJid,
+            error: error.message,
+          });
+
+          recordHistory({
+            source: "broadcast",
+            sessionId: session.id,
+            to: maskedJid,
+            type,
+            message: message.slice(0, 120),
+            status: "failed",
+            error: error.message,
+            requestId: req.id,
+          });
+        });
+    });
+
+    return res.json({
+      success: true,
+      message: `Broadcast dijadwalkan ke ${targets.length} nomor. Cek tab Riwayat untuk status pengiriman.`,
+      total: targets.length,
+      requestId: req.id,
+    });
+  },
+);
+
+app.get("/api/schedule", requireAdminSession, async (req, res) => {
   const jobs = await listScheduledJobs();
   const entries = jobs.map(({ jid, file, ...rest }) => rest);
 
@@ -11822,99 +15884,111 @@ app.get("/api/schedule", async (req, res) => {
   });
 });
 
-app.post("/api/schedule", (req, res, next) => {
-  upload.single("file")(req, res, (err) => {
-    if (err) {
-      const message =
-        err.code === "LIMIT_FILE_SIZE"
-          ? `Ukuran file melebihi batas ${Math.round(MAX_FILE_SIZE_BYTES / 1024 / 1024)}MB`
-          : err.message;
+app.post(
+  "/api/schedule",
+  requireAdminSession,
+  (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err) {
+        const message =
+          err.code === "LIMIT_FILE_SIZE"
+            ? `Ukuran file melebihi batas ${Math.round(MAX_FILE_SIZE_BYTES / 1024 / 1024)}MB`
+            : err.message;
 
-      return res.status(400).json({ success: false, message, requestId: req.id });
+        return res
+          .status(400)
+          .json({ success: false, message, requestId: req.id });
+      }
+
+      return next();
+    });
+  },
+  async (req, res) => {
+    const session = resolveSessionOrRespond(req, res);
+    if (!session) {
+      return;
     }
 
-    return next();
-  });
-}, async (req, res) => {
-  const session = resolveSessionOrRespond(req, res);
-  if (!session) {
-    return;
-  }
+    let jid;
+    let message;
+    let sendAtDate;
 
-  let jid;
-  let message;
-  let sendAtDate;
+    try {
+      jid = normalizeRecipient(req.body.number);
+      message = normalizeOptionalCaption(req.body.message);
 
-  try {
-    jid = normalizeRecipient(req.body.number);
-    message = normalizeOptionalCaption(req.body.message);
+      if (!req.file && !message) {
+        throw new Error("Isi pesan atau lampirkan file terlebih dahulu");
+      }
 
-    if (!req.file && !message) {
-      throw new Error("Isi pesan atau lampirkan file terlebih dahulu");
+      if (!req.body.sendAt) {
+        throw new Error("Waktu pengiriman (sendAt) wajib diisi");
+      }
+
+      sendAtDate = new Date(req.body.sendAt);
+      if (Number.isNaN(sendAtDate.getTime())) {
+        throw new Error("Format waktu pengiriman tidak valid");
+      }
+
+      if (sendAtDate.getTime() <= Date.now()) {
+        throw new Error("Waktu pengiriman harus di masa depan");
+      }
+    } catch (error) {
+      return res
+        .status(400)
+        .json({ success: false, message: error.message, requestId: req.id });
     }
 
-    if (!req.body.sendAt) {
-      throw new Error("Waktu pengiriman (sendAt) wajib diisi");
+    const id = uuidv4();
+    let fileInfo = null;
+
+    if (req.file) {
+      const storedPath = path.join(
+        SCHEDULED_UPLOADS_DIR,
+        `${id}-${req.file.originalname}`,
+      );
+      await fs.promises.writeFile(storedPath, req.file.buffer);
+      fileInfo = {
+        path: storedPath,
+        mimetype: req.file.mimetype,
+        fileName: req.file.originalname,
+      };
     }
 
-    sendAtDate = new Date(req.body.sendAt);
-    if (Number.isNaN(sendAtDate.getTime())) {
-      throw new Error("Format waktu pengiriman tidak valid");
-    }
-
-    if (sendAtDate.getTime() <= Date.now()) {
-      throw new Error("Waktu pengiriman harus di masa depan");
-    }
-  } catch (error) {
-    return res.status(400).json({ success: false, message: error.message, requestId: req.id });
-  }
-
-  const id = uuidv4();
-  let fileInfo = null;
-
-  if (req.file) {
-    const storedPath = path.join(SCHEDULED_UPLOADS_DIR, `${id}-${req.file.originalname}`);
-    await fs.promises.writeFile(storedPath, req.file.buffer);
-    fileInfo = {
-      path: storedPath,
-      mimetype: req.file.mimetype,
-      fileName: req.file.originalname,
+    const job = {
+      id,
+      sessionId: session.id,
+      jid,
+      to: maskDestination(jid),
+      message,
+      file: fileInfo,
+      hasFile: Boolean(fileInfo),
+      sendAt: sendAtDate.toISOString(),
+      status: "pending",
+      createdAt: new Date().toISOString(),
     };
-  }
 
-  const job = {
-    id,
-    sessionId: session.id,
-    jid,
-    to: maskDestination(jid),
-    message,
-    file: fileInfo,
-    hasFile: Boolean(fileInfo),
-    sendAt: sendAtDate.toISOString(),
-    status: "pending",
-    createdAt: new Date().toISOString(),
-  };
+    await insertScheduledJob(job);
 
-  await insertScheduledJob(job);
+    logger.info(`[${req.id}] Pesan terjadwal dibuat`, {
+      id,
+      to: job.to,
+      sendAt: job.sendAt,
+      hasFile: job.hasFile,
+    });
 
-  logger.info(`[${req.id}] Pesan terjadwal dibuat`, {
-    id,
-    to: job.to,
-    sendAt: job.sendAt,
-    hasFile: job.hasFile,
-  });
+    const { jid: _jid, file: _file, ...publicJob } = job;
 
-  const { jid: _jid, file: _file, ...publicJob } = job;
+    return res.json({
+      success: true,
+      message: "Pesan terjadwal berhasil dibuat",
+      entry: publicJob,
+      requestId: req.id,
+    });
+  },
+);
 
-  return res.json({
-    success: true,
-    message: "Pesan terjadwal berhasil dibuat",
-    entry: publicJob,
-    requestId: req.id,
-  });
-});
-
-app.delete("/api/schedule/:id", async (req, res) => {
+app.delete("/api/schedule/:id", requireAdminSession, async (req, res) => {
   const job = await findScheduledJob(req.params.id);
 
   if (!job) {
@@ -12001,25 +16075,26 @@ async function bootstrapDefaultAdmin() {
   }
 
   const username = process.env.ADMIN_USERNAME || "admin";
-  const password = process.env.ADMIN_PASSWORD || crypto.randomBytes(9).toString("base64url");
-  const admin = await createAdmin(username, password);
+  const password =
+    process.env.ADMIN_PASSWORD || crypto.randomBytes(9).toString("base64url");
+  const phone = process.env.ADMIN_PHONE || "";
+  const admin = await createAdmin(username, password, phone);
 
-  // console.log dipakai (bukan cuma logger) supaya kredensial first-run pasti
-  // terlihat operator walau NODE_ENV=production (transport console logger
-  // dimatikan di mode production).
   console.log("============================================================");
-  console.log(" Akun admin default dibuat untuk login pertama kali:");
-  console.log(`   URL      : ${PUBLIC_BASE_URL || `http://localhost:${PORT}`}/login`);
-  console.log(`   Username : ${admin.username}`);
-  console.log(`   Password : ${password}`);
-  console.log(" Segera login lalu ganti password ini lewat tab Pengaturan > Kelola Admin.");
+  console.log(" Admin internal dibuat untuk audit dashboard.");
+  console.log(" Login dashboard memakai WA_WEBSITE_URL dan API_KEY dari .env.");
   console.log("============================================================");
 
   logger.warn("Admin default dibuat", { username: admin.username });
 }
 
 function activateSessionRuntime(row) {
-  const runtime = createSessionRuntime(row.id, row.name, row.authDir, row.createdAt);
+  const runtime = createSessionRuntime(
+    row.id,
+    row.name,
+    row.authDir,
+    row.createdAt,
+  );
   sessions.set(row.id, runtime);
 
   connectToWhatsApp(runtime).catch((error) => {
@@ -12093,7 +16168,10 @@ async function main() {
 }
 
 main().catch((error) => {
-  logger.error("Gagal memulai server", { error: error.message, stack: error.stack });
+  logger.error("Gagal memulai server", {
+    error: error.message,
+    stack: error.stack,
+  });
   console.error("Gagal memulai server:", error);
   process.exit(1);
 });

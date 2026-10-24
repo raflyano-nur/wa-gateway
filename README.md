@@ -65,6 +65,10 @@ Semua variabel bisa diatur lewat file `.env`, **atau lewat tab Pengaturan di das
 | `MAX_ACCOUNTS` | `3` | Batas maksimum akun WhatsApp yang bisa terhubung bersamaan (server-wide, admin + semua user) |
 | `ADMIN_USERNAME` | `admin` | Username admin default, dibuat otomatis saat pertama kali server jalan (kalau belum ada admin sama sekali) |
 | `ADMIN_PASSWORD` | *(random)* | Password admin default. Kalau kosong, di-generate acak & ditampilkan sekali di console log saat server pertama kali jalan — segera login lalu ganti lewat tab Pengaturan → Kelola Admin |
+| `ADMIN_PHONE` | *(kosong)* | Nomor WA admin default (mis. `628123456789`), dipakai untuk kirim kode OTP kalau admin lupa password. Bisa juga diisi belakangan lewat tab Pengaturan → Kelola Admin — tanpa nomor WA, fitur "Lupa password" tidak bisa dipakai akun itu |
+| `OTP_TTL_MS` | `300000` (5 menit) | Masa berlaku kode OTP lupa password (user & admin) sebelum kedaluwarsa |
+| `OTP_RESEND_COOLDOWN_MS` | `60000` (60 detik) | Jeda minimum sebelum boleh minta/kirim ulang kode OTP lupa password untuk username yang sama — mencegah spam ke WhatsApp target |
+| `TWO_FACTOR_TTL_MS` | `300000` (5 menit) | Masa berlaku kode verifikasi 2 langkah (login) sebelum kedaluwarsa. Fitur 2FA sendiri diaktifkan/nonaktifkan lewat tab Pengaturan → toggle "Aktifkan verifikasi 2 langkah", bukan env var — default OFF |
 | `DEFAULT_USER_MAX_ACCOUNTS` | `1` | Kuota akun WAG gratis untuk user baru yang daftar sendiri. Admin bisa naikkan per-user di tab Pengguna |
 | `LOG_DIR` | `./logs` | Folder file log (`combined.log`, `error.log`, `whatsapp.log`). Arahkan ke folder di volume persisten kalau deploy di platform dengan filesystem sementara (mis. Railway) |
 | `DATA_DIR` | `./data` | Folder riwayat pesan & pesan terjadwal. Arahkan ke folder di volume persisten kalau deploy di platform dengan filesystem sementara |
@@ -126,20 +130,23 @@ Belum punya QRIS? Bisa dibuat gratis lewat aplikasi DANA/OVO/GoPay (cari menu "Q
 
 **Login admin pertama kali**: kalau belum ada admin sama sekali, server otomatis membuat satu admin default saat pertama kali dijalankan — cek console log saat startup untuk username & password-nya (lihat variabel `ADMIN_USERNAME`/`ADMIN_PASSWORD` di tabel konfigurasi). Segera login dan ganti password lewat tab Pengaturan → Kelola Admin.
 
+**Verifikasi 2 langkah (2FA) saat login** (opsional, default OFF): diaktifkan lewat toggle di tab Pengaturan. Setelah aktif, login admin maupun user butuh kode OTP tambahan (dikirim ke WhatsApp nomor terdaftar) sebelum sesi dibuat — akun yang belum punya nomor WA terdaftar tidak akan bisa login selama toggle ini aktif, jadi pastikan semua admin sudah punya nomor WA di panel Kelola Admin sebelum mengaktifkannya.
+
 ## Halaman Web
 
 ### `GET /`
-Dashboard admin single-page (tanpa reload, wajib login admin — redirect ke `/login` kalau belum), berisi 9 tab:
+Dashboard admin single-page (tanpa reload, wajib login admin — redirect ke `/login` kalau belum), berisi 10 tab:
 
-- **Dashboard** — kartu per akun WhatsApp (status, QR, Test Chat/Ganti Akun/Hapus), tombol "+ Tambah Akun" (dibatasi `MAX_ACCOUNTS`), embed widget QR.
+- **Dashboard** — kartu per akun WhatsApp (status, QR, Test Chat/Ganti Akun/Hapus), tombol "+ Tambah Akun" (dibatasi `MAX_ACCOUNTS`), grafik statistik pengiriman (terkirim/gagal per hari, 7/14/30 hari terakhir), embed widget QR.
 - **Kirim Pesan** — kirim pesan Teks Saja / File Saja / File + Teks langsung dari browser, pilih akun pengirim.
 - **Broadcast** — kirim satu pesan ke banyak nomor sekaligus dari akun pilihan. Butuh API key.
 - **Terjadwal** — buat, lihat, dan batalkan pesan yang dijadwalkan untuk dikirim nanti dari akun pilihan. Butuh API key.
 - **Riwayat** — histori pesan yang sudah dikirim (form, API, broadcast, terjadwal) dari semua akun beserta statusnya. Butuh API key.
 - **Logs** — baca log server (`combined` / `error` / `whatsapp`) dengan auto-refresh. Butuh API key.
-- **Pengaturan** — ubah konfigurasi `.env` dari browser (otomatis restart server saat disimpan), termasuk Kelola Admin (tambah/hapus akun admin, ganti password). Butuh API key.
+- **Pengaturan** — ubah konfigurasi `.env` dari browser (otomatis restart server saat disimpan), termasuk Kelola Admin (tambah/hapus akun admin, ganti password/nomor WA) dan toggle verifikasi 2 langkah. Butuh API key.
 - **Persetujuan** — approve/reject permintaan akun WAG baru dari user, plus konfigurasi notifikasi WhatsApp otomatis.
 - **Pengguna** — daftar user terdaftar, jumlah akun WAG & pesan terkirim hari ini, dropdown ganti paket (Free/Pro/Max — naikkan di sini setelah user konfirmasi bayar manual), tanggal kadaluarsa paket (merah kalau sudah lewat), badge kalau user sudah minta upgrade sendiri, hapus user.
+- **Log Aktivitas** — jejak 100 aktivitas admin terbaru (login, kelola admin, approve/reject akun, ubah paket, simpan pengaturan, dst) beserta waktu, admin pelaku, dan IP — supaya ada rekam jejak kalau ada perubahan mencurigakan.
 
 > Tab yang "butuh API key" menampilkan form "Buka" — masukkan API key sekali, tersimpan di `sessionStorage` browser (bukan di server lain). Kalau `API_KEY` belum diset di server, cukup klik "Buka" tanpa mengisi apa pun. Ini terpisah dari login admin (cookie session) yang melindungi dashboard secara keseluruhan.
 
